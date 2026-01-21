@@ -89,8 +89,10 @@ formal admissibility rules, rather than randomness or external intervention.
 ```text
 .
 ├── github
-│   ├──
+│   ├── ISSUE_TEMPLATE
+
 │   ├── workflows
+│   │   └── 
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── programs
 │   └── orbital_pulse
