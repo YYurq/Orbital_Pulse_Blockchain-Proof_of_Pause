@@ -76,7 +76,7 @@ genesis event recorded on-chain.
 ├── Anchor.toml
 ├── Cargo.toml
 └── README.md
-
+```
 ---
 
 ## Documentation
