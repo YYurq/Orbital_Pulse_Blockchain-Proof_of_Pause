@@ -1,0 +1,12 @@
+[programs.devnet]
+orbital_engine = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
