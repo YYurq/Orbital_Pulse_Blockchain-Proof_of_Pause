@@ -90,8 +90,8 @@ formal admissibility rules, rather than randomness or external intervention.
 .
 ├── github
 │   ├── ISSUE_TEMPLATE
-│       ├── bug_report.md:
-│       └── 
+│   │   ├── bug_report.md:
+│   │   └── feature_request.md
 │   ├── workflows
 │   │   └── anchor.yml
 │   └── PULL_REQUEST_TEMPLATE.md
