@@ -25,12 +25,12 @@ Token emission occurs **only** when the system reaches a resonant state
 A system transition is permitted only when internal state, external noise,
 and admissible thresholds converge within a defined tolerance.
 
-### TFAPSI
+### TPAPCI
 **Theory of Phase Architecture of Pulsational Convergence of Information** —
 a theoretical framework describing how information systems self-organize
 through phase states, pulsations, and resonance under noisy conditions.
 
-### Proof of Pause (PoP)
+### Proof of Pause/Pulse (PoP)
 A consensus-independent emission trigger based on:
 - hash entropy
 - deterministic state checks
