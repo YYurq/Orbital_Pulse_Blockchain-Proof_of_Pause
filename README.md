@@ -62,16 +62,20 @@ genesis event recorded on-chain.
 
 ## Repository Structure
 
-├── programs/
-│ └── orbital_pulse/
-│ └── src/lib.rs
-├── tests/
-│ └── anchor.test.ts
-├── docs/
-│ ├── Zakon_Dostupa_RU.pdf
-│ └── Theory_TFAPSI_RU.pdf
-├── README.md
-
+.
+├── programs
+│   └── orbital_pulse
+│       ├── Cargo.toml
+│       └── src
+│           └── lib.rs
+├── tests
+│   └── anchor.test.ts
+├── docs
+│   ├── Zakon_Dostupa_RU.pdf
+│   └── Theory_TFAPSI_RU.pdf
+├── Anchor.toml
+├── Cargo.toml
+└── README.md
 
 ---
 
