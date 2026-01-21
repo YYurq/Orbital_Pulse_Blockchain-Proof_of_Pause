@@ -59,6 +59,26 @@ Each successful initialization represents an independent and verifiable
 genesis event recorded on-chain.
 
 ---
+## Network Verification (Proof of Concept)
+
+To verify the functionality of the **Proof-of-Pause** algorithm and compliance with the **Law of Admission**, you can inspect the program state and related assets in real time on the Solana blockchain:
+
+- **Program ID (Core):**  
+  [`3o6We5...vLn917`](https://explorer.solana.com/address/3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917?cluster=devnet)
+
+- **Genesis Mint ($ORBIT):**  
+  [`JDveDC...vyjf`](https://explorer.solana.com/address/JDveDCK913Gg2Cx4s4gak7aHg8ozEJaQdcNiPWNvvyjf?cluster=devnet)
+
+### How to Verify Proof of Pause
+
+In the Solana Explorer, open the **History** section of the Program ID or the mint account.
+A reward of `0.1 $ORBIT` appears **only** when the mathematical pause condition  
+`delta < epsilon` is successfully satisfied by the program logic.
+
+This guarantees that asset emission is governed by deterministic constraints and
+formal admissibility rules, rather than randomness or external intervention.
+
+---
 
 ## Repository Structure
 ```text
