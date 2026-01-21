@@ -1,5 +1,5 @@
 [programs.devnet]
-orbital_engine = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
+orbital_pulse = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
 
 [registry]
 url = "https://api.apr.dev"
