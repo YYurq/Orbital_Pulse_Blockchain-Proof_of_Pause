@@ -1,3 +1,8 @@
+[![Solana](https://img.shields.io/badge/Solana-Devnet-14F195?style=flat-square&logo=solana)](https://explorer.solana.com/address/3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917?cluster=devnet)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause/anchor.yml?style=flat-square)](https://github.com/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause/actions)
+[![Stars](https://img.shields.io/github/stars/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause?style=flat-square)](https://github.com/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause/stargazers)
+
 # ORBITAL Pulse Blockchain  
 **Proof of Pause / Proof of Pulse**
 
