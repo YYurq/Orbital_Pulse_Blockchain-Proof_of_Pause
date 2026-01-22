@@ -1,13 +1,18 @@
-[package]
-name = "orbital_pulse"
-version = "0.1.0"
-description = "Created with Anchor"
-edition = "2021"
+[workspace]
+members = [
+    "programs/orbital_pulse"
+]
+resolver = "2"
 
-[lib]
-crate-type = ["cdylib", "lib"]
-name = "orbital_pulse" # Убедитесь, что здесь именно подчеркивание
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+panic = "abort"
 
-[dependencies]
-anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
-anchor-spl = { version = "0.29.0" }
+[profile.release.build-override]
+opt-level = 3
+
+[patch.crates-io]
+# Если возникнут проблемы с версиями зависимостей Solana, 
+# здесь можно будет зафиксировать конкретные ревизии.
