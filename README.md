@@ -46,6 +46,34 @@ A consensus-independent emission trigger based on:
 * **Fine Log** — Instantaneous entropy response, representing the primary volatility signal derived from block physics.
 * **EMA Trend** — Logarithmic inertia (Exponential Moving Average) that suppresses stochastic network noise and preserves phase continuity.
 * **Adaptive Depth** — Self-adjusting scanning window that dynamically expands or contracts in response to observed network volatility.
+
+### Technical Architecture: Orbital Flow
+The following diagram illustrates the transformation of raw network entropy into economic value through the Proof-of-Pause mechanism:
+```mermaid
+graph TD
+    %% Nodes
+    Entropy[<b>Entropy Source</b><br/>Solana Slot Hashes] -- Block Physics --> FineLog(<b>Fine Log</b><br/>Instantaneous Signal)
+    
+    FineLog -- "Logarithmic Normalization (u128)" --> EMA[<b>EMA Trend</b><br/>Inertial Projection]
+    
+    subgraph Self_Regulation [Adaptive Loop]
+    EMA -- Gradient Drift --> Depth[<b>Adaptive Depth</b><br/>Dynamic Scanning Window]
+    Depth -.->|Feedback| FineLog
+    end
+    
+    EMA -- Phase Continuity --> Resonance{<b>Resonance Check</b>}
+    
+    Resonance -- "Delta < Epsilon<br/>(Quiet Phase)" --> MintNode[[<b>Mint $ORBIT</b><br/>Orbital Transition]]
+    Resonance -- "High Volatility" --> Observe[Observation State]
+    
+    %% Styling
+    style Entropy fill:#1a1a1a,stroke:#9945FF,stroke-width:2px,color:#fff
+    style FineLog fill:#1a1a1a,stroke:#14F195,stroke-width:2px,color:#fff
+    style EMA fill:#1a1a1a,stroke:#00C2FF,stroke-width:2px,color:#fff
+    style Resonance fill:#2d2d2d,stroke:#FFD700,stroke-width:2px,color:#fff
+    style MintNode fill:#004d00,stroke:#00ff00,stroke-width:3px,color:#fff
+    style Observe fill:#333,stroke:#666,stroke-dasharray: 5 5,color:#aaa
+```
 ---
 
 ## On-chain Implementation
