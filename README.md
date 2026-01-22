@@ -40,7 +40,12 @@ A consensus-independent emission trigger based on:
 - hash entropy
 - deterministic state checks
 - epsilon-based admissibility conditions
+- 
+### Orbital Mechanics (Proof-of-Pause)
 
+* **Fine Log** — Instantaneous entropy response, representing the primary volatility signal derived from block physics.
+* **EMA Trend** — Logarithmic inertia (Exponential Moving Average) that suppresses stochastic network noise and preserves phase continuity.
+* **Adaptive Depth** — Self-adjusting scanning window that dynamically expands or contracts in response to observed network volatility.
 ---
 
 ## On-chain Implementation
