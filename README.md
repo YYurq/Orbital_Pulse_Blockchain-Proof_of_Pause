@@ -43,28 +43,31 @@ A consensus-independent emission trigger based on:
 - 
 ### Orbital Mechanics (Proof-of-Pause)
 
-* **Fine Log** — Instantaneous entropy response, representing the primary volatility signal derived from block physics.
-* **EMA Trend** — Logarithmic inertia (Exponential Moving Average) that suppresses stochastic network noise and preserves phase continuity.
-* **Adaptive Depth** — Self-adjusting scanning window that dynamically expands or contracts in response to observed network volatility.
+The protocol implements a deterministic, entropy-reactive emission model where $ORBIT minting is governed by algorithmic noise analysis and adaptive spectral filters.
+
+* **Fine Log** — Deterministic logarithmic normalization of raw block entropy using u128 fixed-point arithmetic.
+* **EMA Trend** — Deterministic inertial projection using 4:1 integer-weighted averaging, eliminating floating‑point nondeterminism while suppressing stochastic network noise.
+* **Adaptive Depth** — Self-adjusting scanning window (7–15 slots) with **Gradient Hysteresis (%)**, preventing micro‑oscillation during volatility spikes.
+* **Resonance Check** — Phase continuity verification where minting occurs only when both instantaneous delta and inertial index fall below the resonance threshold.
 
 ### Technical Architecture: Orbital Flow
-The following diagram illustrates the transformation of raw network entropy into economic value through the Proof-of-Pause mechanism:
+
 ```mermaid
 graph TD
     %% Nodes
-    Entropy[<b>Entropy Source</b><br/>Solana Slot Hashes] -- Block Physics --> FineLog(<b>Fine Log</b><br/>Instantaneous Signal)
+    Entropy[<b>Entropy Source</b><br/>Solana Slot Hashes] -- Block Physics --> FineLog(<b>Fine Log</b><br/>u128 Fixed-Point Signal)
     
-    FineLog -- "Logarithmic Normalization (u128)" --> EMA[<b>EMA Trend</b><br/>Inertial Projection]
+    FineLog -- "EMA (4:1 Weighting)" --> EMA[<b>EMA Trend</b><br/>Inertial Projection]
     
-    subgraph Self_Regulation [Adaptive Loop]
-    EMA -- Gradient Drift --> Depth[<b>Adaptive Depth</b><br/>Dynamic Scanning Window]
+    subgraph Self_Regulation [Adaptive Loop with Hysteresis]
+    EMA -- "Grad > Threshold (%)" --> Depth[<b>Adaptive Depth</b><br/>Dynamic Window 7-15]
     Depth -.->|Feedback| FineLog
     end
     
     EMA -- Phase Continuity --> Resonance{<b>Resonance Check</b>}
     
-    Resonance -- "Delta < Epsilon<br/>(Quiet Phase)" --> MintNode[[<b>Mint $ORBIT</b><br/>Orbital Transition]]
-    Resonance -- "High Volatility" --> Observe[Observation State]
+    Resonance -- "Delta < Epsilon &<br/>Index < Epsilon*10" --> MintNode[[<b>Mint $ORBIT</b><br/>Orbital Transition]]
+    Resonance -- "Volatility Peak" --> Observe[Observation State]
     
     %% Styling
     style Entropy fill:#1a1a1a,stroke:#9945FF,stroke-width:2px,color:#fff
