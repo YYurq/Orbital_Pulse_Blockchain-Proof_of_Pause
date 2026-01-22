@@ -2,7 +2,6 @@
 members = [
     "programs/orbital_pulse"
 ]
-resolver = "2"
 
 [profile.release]
 overflow-checks = true
@@ -13,6 +12,5 @@ panic = "abort"
 [profile.release.build-override]
 opt-level = 3
 
-[patch.crates-io]
-# Если возникнут проблемы с версиями зависимостей Solana, 
-# здесь можно будет зафиксировать конкретные ревизии.
+[dependencies]
+# Здесь обычно пусто, так как зависимости определяются в подпапках программ
