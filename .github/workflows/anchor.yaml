@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build Everything
+      - name: Build Orbital Pulse
         run: |
           set -e
           
@@ -37,21 +37,16 @@ jobs:
           echo "=== Installing Anchor CLI ==="
           npm install -g @coral-xyz/anchor-cli@0.29.0
           
-          echo "=== CRITICAL: Force regenerate Cargo.lock with NEW Cargo ==="
-          rm -f Cargo.lock
-          rm -f programs/*/Cargo.lock
-          find . -name "Cargo.lock" -type f -delete
-          
+          echo "=== Regenerating Cargo.lock with NEW Cargo ==="
+          rm -f Cargo.lock programs/*/Cargo.lock
           cargo generate-lockfile
-          
-          echo "Generated Cargo.lock version:"
-          head -1 Cargo.lock
+          echo "Lock version: $(head -1 Cargo.lock)"
           
           echo "=== Setting up Solana keypair ==="
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || true
           
-          echo "=== Starting Anchor Build ==="
+          echo "=== Building Anchor Program ==="
           export RUSTC_BOOTSTRAP=1
           anchor build
           
