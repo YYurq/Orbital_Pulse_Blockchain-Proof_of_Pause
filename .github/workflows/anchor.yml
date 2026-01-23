@@ -36,16 +36,24 @@ jobs:
 
       - name: Build Program
         run: |
+          # 1. Настройка путей
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           export RUSTC_BOOTSTRAP=1
           
-          # КЛЮЧЕВОЙ ШАГ: Перегенерируем lock-файл под текущий Cargo
-          # Это устранит ошибку версии 4, если Cargo её не понимает
-          cargo update
+          # 2. ПРИНУДИТЕЛЬНОЕ УДАЛЕНИЕ LOCK-ФАЙЛОВ
+          # Удаляем во всех папках, чтобы старая версия 4 не блокировала билд
+          find . -name "Cargo.lock" -delete
           
+          # 3. ПЕРЕГЕНЕРАЦИЯ LOCK-ФАЙЛА
+          # Создаем новый файл средствами Rust Nightly (версия будет совместима)
+          cargo generate-lockfile
+          
+          # 4. ПОДГОТОВКА КОШЕЛЬКА
           mkdir -p ~/.config/solana
-          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
+          if [ ! -f ~/.config/solana/id.json ]; then
+            solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
+          fi
           
-          # Явное указание использовать nightly через переменную окружения
-          rustup default nightly
+          # 5. СБОРКА
+          # Используем команду 'anchor build', теперь Cargo не выдаст ошибку парсинга
           anchor build
