@@ -12,3 +12,9 @@ name = "orbital_pulse"
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
 solana-program = "1.17.0"
+# Фиксируем blake3 на стабильной версии 1.5.x, чтобы избежать ошибки Edition 2024
+blake3 = "=1.5.1" 
+
+[patch.crates-io]
+# Если другие библиотеки тянут blake3, мы заставляем их использовать 1.5.1
+blake3 = { git = "https://github.com/BLAKE3-team/BLAKE3", tag = "1.5.1" }
