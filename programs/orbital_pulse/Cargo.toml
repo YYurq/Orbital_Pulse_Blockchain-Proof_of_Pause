@@ -1,14 +1,12 @@
 [package]
 name = "orbital_pulse"
 version = "0.1.0"
-description = "Autonomous ontological system"
 edition = "2021"
-
-[lib]
-crate-type = ["cdylib", "lib"]
-name = "orbital_pulse"
 
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
 solana-program = "1.17.0"
+# Явно ограничиваем версии здесь, чтобы Cargo даже не смотрел на 0.51.0
+wit-bindgen = ">=0.2, <0.30"
+blake3 = ">=1.0, <1.6"
