@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_lang::solana_program::hash::hashv;
 use anchor_lang::solana_program::sysvar::slot_hashes;
 
@@ -55,6 +56,7 @@ pub mod orbital_pulse {
         let h_idx = state.head as usize;
         state.history[h_idx] = delta;
         state.head = (state.head + 1) % 16;
+
         let d_v = state.current_depth as u128;
         let mut sum: u128 = 0;
         let c_h = state.head as usize;
@@ -68,10 +70,12 @@ pub mod orbital_pulse {
             let diff = if val > avg { val - avg } else { avg - val };
             v_sum = v_sum.saturating_add(diff.saturating_mul(diff));
         }
+
         let m_v = v_sum / d_v;
         let msb = 128 - m_v.leading_zeros() as i32;
         let f_log = if msb > 8 { ((msb as u64) << 8) + ((m_v >> (msb - 8)) & 0xFF) as u64 } 
                     else if msb > 0 { (msb as u64) << 8 } else { 0 };
+        
         state.prev_variance_index = state.variance_index;
         state.variance_index = (state.variance_index.saturating_mul(4).saturating_add(f_log)) / 5;
 
@@ -110,6 +114,7 @@ pub mod orbital_pulse {
                 authority: ctx.accounts.mint.to_account_info(),
             }, &[&seeds[..]]), 100_000_000)?;
         }
+
         state.last_noise = noise;
         Ok(())
     }
@@ -131,8 +136,10 @@ pub struct Initialize<'info> {
     #[account(init, payer = signer, space = PulseState::LEN)] pub state: Account<'info, PulseState>,
     #[account(init_if_needed, payer = signer, mint::decimals = 9, mint::authority = mint, seeds = [b"orbital-genesis"], bump)] pub mint: Account<'info, Mint>,
     #[account(init_if_needed, payer = signer, associated_token::mint = mint, associated_token::authority = signer)] pub token_account: Account<'info, TokenAccount>,
-    #[account(mut)] pub signer: Signer<'info>, pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>, pub associated_token_program: Program<'info, anchor_spl::associated_token::AssociatedToken>,
+    #[account(mut)] pub signer: Signer<'info>, 
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>, 
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
 }
 
@@ -142,7 +149,8 @@ pub struct Transition<'info> {
     #[account(mut, seeds = [b"orbital-genesis"], bump)] pub mint: Account<'info, Mint>,
     #[account(mut)] pub token_account: Account<'info, TokenAccount>,
     #[account(address = slot_hashes::ID)] pub slot_hashes: AccountInfo<'info>,
-    #[account(mut)] pub signer: Signer<'info>, pub token_program: Program<'info, Token>,
+    #[account(mut)] pub signer: Signer<'info>, 
+    pub token_program: Program<'info, Token>,
 }
 
 #[error_code]
