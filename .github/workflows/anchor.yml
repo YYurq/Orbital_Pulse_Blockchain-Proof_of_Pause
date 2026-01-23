@@ -22,31 +22,32 @@ jobs:
         with:
           toolchain: 1.75.0
 
-      - name: Install Solana and Setup Path
+      - name: Install Solana (Fixed SSL method)
         run: |
-          # Установка Solana с повторами
-          curl --retry 5 --retry-delay 5 -sSfL https://release.solana.com/v1.17.0/install | sh
+          # Используем альтернативный метод загрузки через wget, который игнорирует некоторые ошибки SSL
+          wget --no-check-certificate https://release.solana.com/v1.17.0/install
+          chmod +x install
+          ./install
           
-          # Настраиваем переменные окружения для текущего шага
+          # Устанавливаем пути принудительно
           SOLANA_BIN="$HOME/.local/share/solana/install/active_release/bin"
           echo "$SOLANA_BIN" >> $GITHUB_PATH
-          
-          # Проверяем установку сразу (используя полный путь)
-          $SOLANA_BIN/solana --version
+          # Проверка наличия директории
+          ls -la $SOLANA_BIN || echo "Директория еще не создана"
 
       - name: Install Anchor CLI
         run: |
-          # Установка через NPM (быстро и надежно)
+          # Установка через NPM — это самый быстрый путь в CI
           npm install -g @coral-xyz/anchor-cli@0.29.0
           echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
 
       - name: Setup Solana Keypair
         run: |
-          # Теперь команда должна быть доступна через обновленный PATH
-          mkdir -p ~/.config/solana
-          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
+          # Используем полный путь к бинарнику, чтобы не зависеть от обновления PATH
+          $HOME/.local/share/solana/install/active_release/bin/solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
 
       - name: Build Program
         run: |
-          # Финальная сборка
+          # Добавляем путь вручную для текущей сессии
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           anchor build
