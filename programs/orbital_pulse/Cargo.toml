@@ -1,6 +1,7 @@
 [package]
 name = "orbital_pulse"
 version = "0.1.0"
+description = "Autonomous ontological system"
 edition = "2021"
 
 [lib]
