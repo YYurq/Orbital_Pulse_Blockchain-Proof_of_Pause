@@ -5,9 +5,10 @@ members = [
 resolver = "2"
 
 [patch.crates-io]
-# Блокируем проблемные версии, требующие нестабильный Edition 2024
-blake3 = { git = "https://github.com/BLAKE3-team/BLAKE3", tag = "1.5.1" }
+# Принудительно откатываем wit-bindgen на версию 0.24, которая точно работает
 wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", tag = "v0.24.0" }
+# Откатываем blake3
+blake3 = { git = "https://github.com/BLAKE3-team/BLAKE3", tag = "1.5.1" }
 
 [profile.release]
 overflow-checks = true
