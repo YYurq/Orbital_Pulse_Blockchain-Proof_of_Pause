@@ -1,19 +1,12 @@
 [package]
 name = "orbital_pulse"
 version = "0.1.0"
-description = "Autonomous ontological system with median-based vacuum calibration"
+description = "Autonomous ontological system"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
 name = "orbital_pulse"
-
-[features]
-no-entrypoint = []
-no-idl = []
-no-log-ix-name = []
-cpi = ["no-entrypoint"]
-default = []
 
 [dependencies]
 anchor-lang = "0.29.0"
