@@ -20,7 +20,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.82.0
+          toolchain: 1.84.0
 
       - name: Install Solana (Direct Download)
         run: |
@@ -40,6 +40,6 @@ jobs:
       - name: Build Program
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
-          # RUSTC_BOOTSTRAP позволяет обходить проверки версий в зависимостях
+          # Математический взлом: разрешаем использовать нестабильные фичи для сборки зависимостей
           export RUSTC_BOOTSTRAP=1
           anchor build
