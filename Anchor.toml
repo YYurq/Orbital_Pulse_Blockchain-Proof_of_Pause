@@ -7,6 +7,9 @@ skip-lint = false
 [programs.localnet]
 orbital_pulse = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
 
+[registry]
+url = "https://anchor.projectserum.com"
+
 [provider]
 cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
