@@ -12,12 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Force Clean environment
-        run: |
-          # Удаляем Lock-файлы сразу после скачивания кода
-          find . -name "Cargo.lock" -type f -delete
-          echo "All Cargo.lock files removed."
-
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -25,16 +19,14 @@ jobs:
 
       - name: Install Latest Rust Nightly
         run: |
-          # Прямая установка через rustup гарантирует самую свежую версию Cargo
+          # Устанавливаем самый свежий nightly
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-          # Подгружаем переменные окружения в текущую оболочку
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
-          rustup default nightly
+          rustup component add rustfmt clippy
           
-          echo "Rust version:"
+          # Проверяем версию
+          echo "=== Rust Version ==="
           rustc --version
-          echo "Cargo version:"
           cargo --version
 
       - name: Install Solana
@@ -46,18 +38,30 @@ jobs:
       - name: Install Anchor CLI
         run: |
           npm install -g @coral-xyz/anchor-cli@0.29.0
-          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
+      - name: Clean Old Lock Files
+        run: |
+          # КРИТИЧНО: удаляем Lock ПЕРЕД загрузкой Cargo env
+          echo "=== Removing old Cargo.lock files ==="
+          find . -name "Cargo.lock" -type f -exec rm -vf {} \;
+          
+          # Показываем что осталось
+          echo "=== Remaining Cargo.lock files (should be empty) ==="
+          find . -name "Cargo.lock" || echo "None found - OK"
 
       - name: Build Program
         run: |
-          # Подгружаем пути еще раз для уверенности
+          # Загружаем свежий Cargo
           source $HOME/.cargo/env
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           export RUSTC_BOOTSTRAP=1
           
-          # Подготовка ключа
+          # Подготовка ключа Соланы
           mkdir -p ~/.config/solana
-          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
+          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || true
           
-          # Сборка. Теперь Cargo версии 1.90+ сам создаст валидный Lock
+          echo "=== Starting Anchor Build ==="
+          # Anchor создаст новый Lock v4 с правильным Cargo
           anchor build
+          
+          echo "=== Build Complete ==="
