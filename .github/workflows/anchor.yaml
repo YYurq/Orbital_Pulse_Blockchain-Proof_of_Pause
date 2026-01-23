@@ -15,8 +15,6 @@ jobs:
 
       - name: Hard Cleanup
         run: |
-          echo "=== CLEANING ALL LOCKFILES ==="
-          # Ищем и уничтожаем все Cargo.lock во всех папках
           find . -name "Cargo.lock" -type f -delete
           rm -f Cargo.lock
 
@@ -31,42 +29,32 @@ jobs:
           echo "=== 2. Install Rust Nightly ==="
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
           source $HOME/.cargo/env
-          
-          echo "=== 3. Set Paths ==="
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          export PATH="$HOME/.cargo/bin:$PATH"
-          rustup default nightly
           
-          echo "=== 4. Install Solana ==="
+          echo "=== 3. Install Solana ==="
           wget -q https://github.com/solana-labs/solana/releases/download/v1.17.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2
           tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
           echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
-          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
+          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$HOME/.cargo/bin:$PATH"
           
-          echo "=== 5. Install Anchor ==="
+          echo "=== 4. Install Anchor ==="
           npm install -g @coral-xyz/anchor-cli@0.29.0
           
-          echo "=== 6. Setup Keypair ==="
+          echo "=== 5. Setup Keypair ==="
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
           
-          echo "=== 7. Force Generate Lockfile V3 ==="
-          # Удаляем на случай, если что-то появилось
-          rm -f Cargo.lock
-          # Генерируем новый лок (Cargo 1.95 создаст V4 по умолчанию)
+          echo "=== 6. Patch and Update Dependencies ==="
+          # Генерация нового лока и применение патчей из Cargo.toml
           cargo generate-lockfile
-          
-          # КРИТИЧЕСКИЙ ТРЮК: Подменяем версию 4 на 3 прямо в тексте файла
-          # Это обманет старые инструменты Solana, которые зашиты в Anchor
+          # Принудительно понижаем версию, чтобы обмануть старый парсер
           sed -i 's/version = 4/version = 3/g' Cargo.lock
-          echo "Lockfile version downgraded to 3"
-          head -n 5 Cargo.lock
+          # Обновляем дерево зависимостей согласно нашим [patch]
+          cargo update
           
-          echo "=== 8. Build Anchor Program ==="
+          echo "=== 7. Build Anchor Program ==="
           export RUSTC_BOOTSTRAP=1
-          export PATH="$HOME/.cargo/bin:$GITHUB_WORKSPACE/solana-release/bin:$PATH"
+          # Используем системный путь для уверенности
+          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$HOME/.cargo/bin:$PATH"
           
-          # Запуск сборки
-          anchor build || (echo "Retrying build..." && anchor build)
-          
-          echo "=== BUILD COMPLETE ==="
+          anchor build
