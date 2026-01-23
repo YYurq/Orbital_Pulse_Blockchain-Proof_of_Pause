@@ -12,6 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Force Clean Environment
+        run: |
+          # Удаляем Lock-файл немедленно, чтобы Cargo не спотыкался о версию 4
+          rm -f Cargo.lock
+          # На всякий случай удаляем кэш, если он есть
+          rm -rf target/
+
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -20,7 +27,7 @@ jobs:
       - name: Install Rust Nightly
         uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2025-01-15 # Свежий Nightly 2025 года
+          toolchain: nightly-2025-01-20
 
       - name: Install Solana (Direct Download)
         run: |
@@ -40,8 +47,6 @@ jobs:
       - name: Build Program
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
-          # Разрешаем использовать нестабильные фичи
           export RUSTC_BOOTSTRAP=1
-          # Удаляем Lock файл, чтобы Cargo не пытался использовать версию 0.51.0
-          rm -f Cargo.lock
+          # Сборка с нуля
           anchor build
