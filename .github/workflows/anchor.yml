@@ -17,10 +17,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: 1.82.0
+          toolchain: nightly-2024-11-01 # Используем конкретную дату для стабильности
 
       - name: Install Solana (Direct Download)
         run: |
@@ -40,6 +40,6 @@ jobs:
       - name: Build Program
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
-          # Принудительно разрешаем Cargo использовать новые фичи для зависимостей
+          # Ключевой флаг для работы с нестабильными редакциями в зависимостях
           export RUSTC_BOOTSTRAP=1
           anchor build
