@@ -19,7 +19,7 @@ pub mod orbital_pulse {
         state.calib_count = 0;
         state.is_born = false;
         state.gradient_threshold_percent = threshold_percent.clamp(1, 10);
-        state.mode = 255; 
+        state.mode = 255;
         state.epsilon = 0;
         state.x_control = 0;
         state.current_depth = 11;
