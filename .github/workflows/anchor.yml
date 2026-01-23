@@ -17,10 +17,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: 1.84.0
+          toolchain: nightly
 
       - name: Install Solana
         run: |
@@ -38,8 +38,9 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           export RUSTC_BOOTSTRAP=1
           
-          # На всякий случай убеждаемся, что локального ключа нет, и создаем его
+          # На всякий случай создаем кошелек
           mkdir -p ~/.config/solana
-          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key already exists"
+          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
           
+          # Собираем
           anchor build
