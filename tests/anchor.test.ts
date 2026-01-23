@@ -10,6 +10,7 @@ describe("orbital-pulse-final", function () {
   const signer = provider.wallet.publicKey;
   const stateAccount = anchor.web3.Keypair.generate();
 
+  // Лимит времени 120с для прохождения 30 транзакций подтверждения
   this.timeout(120000);
 
   it("Протокол Инициации: Рождение системы", async function () {
@@ -49,9 +50,9 @@ describe("orbital-pulse-final", function () {
         state: stateAccount.publicKey,
         mint: mintPda,
         tokenAccount: tokenAccount,
-        slotHashes: new anchor.web3.PublicKey("SysvarS1otHashes111111111111111111111111111"),
+        slot_hashes: new anchor.web3.PublicKey("SysvarS1otHashes111111111111111111111111111"),
         signer: signer,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        token_program: TOKEN_PROGRAM_ID,
       }).rpc();
 
       const state = await program.account.pulseState.fetch(stateAccount.publicKey);
@@ -62,6 +63,7 @@ describe("orbital-pulse-final", function () {
         const varIdx = BigInt(state.varianceIndex.toString());
         const eps = BigInt(state.epsilon.toString());
         const xVal = BigInt(state.xControl.toString());
+        
         const xMax = varIdx > eps ? varIdx : (eps > 0n ? eps : 1n);
         const load = (Number(xVal * 1000n / xMax) / 10).toFixed(1);
 
