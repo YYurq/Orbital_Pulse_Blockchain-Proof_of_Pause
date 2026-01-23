@@ -49,12 +49,14 @@ jobs:
           cargo generate-lockfile
           
           echo "Downgrading incompatible crates..."
-          # Тройной удар по borsh, чтобы ничего не просочилось
-          cargo update -p borsh --precise 1.5.1 || echo "skip"
-          cargo update -p borsh-derive --precise 1.5.1 || echo "skip"
-          cargo update -p blake3 --precise 1.5.1 || echo "skip"
-          cargo update -p toml_datetime --precise 0.6.3 || echo "skip"
-          cargo update -p solana-program --precise 1.17.0 || echo "skip"
+          # Принудительно откатываем всё, что ломает билд на старом Rust 1.68
+          cargo update -p indexmap --precise 1.9.3 || echo "indexmap skip"
+          cargo update -p hashbrown --precise 0.14.3 || echo "hashbrown skip"
+          cargo update -p borsh --precise 1.5.1 || echo "borsh skip"
+          cargo update -p borsh-derive --precise 1.5.1 || echo "borsh-derive skip"
+          cargo update -p blake3 --precise 1.5.1 || echo "blake3 skip"
+          cargo update -p toml_datetime --precise 0.6.3 || echo "toml skip"
+          cargo update -p solana-program --precise 1.17.0 || echo "solana-program skip"
           
           echo "=== 7. LOCK VERSION HACK (v4 -> v3) ==="
           sed -i 's/version = 4/version = 3/g' Cargo.lock
@@ -65,7 +67,7 @@ jobs:
           export RUSTC_BOOTSTRAP=1
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$HOME/.cargo/bin:$PATH"
           
-          # Пробуем билд
+          # Запуск сборки
           anchor build -- --offline || anchor build
           
           echo "=== BUILD COMPLETE ==="
