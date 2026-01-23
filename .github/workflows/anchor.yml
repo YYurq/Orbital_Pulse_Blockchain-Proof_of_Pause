@@ -20,7 +20,7 @@ jobs:
       - name: Install Rust Nightly
         uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly
+          toolchain: nightly-2025-10-01 # Используем очень свежий Nightly
 
       - name: Install Solana
         run: |
@@ -38,9 +38,13 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           export RUSTC_BOOTSTRAP=1
           
-          # На всякий случай создаем кошелек
+          # КЛЮЧЕВОЙ МОМЕНТ: Удаляем Lock-файл прямо здесь, 
+          # чтобы Cargo даже не увидел его версию 4
+          find . -name "Cargo.lock" -type f -delete
+          
+          # Создаем кошелек
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
           
-          # Собираем
+          # Запускаем сборку с обновлением зависимостей
           anchor build
