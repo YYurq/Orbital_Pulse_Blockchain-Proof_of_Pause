@@ -20,7 +20,7 @@ pub mod orbital_pulse {
         state.is_born = false;
         
         state.gradient_threshold_percent = threshold_percent.clamp(1, 10);
-        state.mode = 255; // Режим CALIBRATION
+        state.mode = 255; 
         state.epsilon = 0;
         state.x_control = 0;
         state.current_depth = 11;
@@ -34,14 +34,13 @@ pub mod orbital_pulse {
     pub fn try_transition(ctx: Context<Transition>) -> Result<()> {
         let state = &mut ctx.accounts.state;
         
-        // 1. Извлечение энтропии
         let data = ctx.accounts.slot_hashes.try_borrow_data()?;
         let hash: [u8; 32] = data[12..44].try_into().map_err(|_| ErrorCode::HashNotFound)?;
         let n_hash = hashv(&[&hash, &state.authority.to_bytes()]);
         let noise = u64::from_le_bytes(n_hash.as_ref()[0..8].try_into().unwrap());
         let delta = if noise > state.last_noise { noise - state.last_noise } else { state.last_noise - noise };
 
-        // 2. ФАЗА РОЖДЕНИЯ (Медианная калибровка)
+        // ФАЗА РОЖДЕНИЯ (Медианная калибровка)
         if !state.is_born {
             let idx = state.calib_count as usize; 
             state.history[idx] = delta;
@@ -50,16 +49,15 @@ pub mod orbital_pulse {
             if state.calib_count == CALIBRATION_STEPS {
                 let mut h = state.history;
                 h[0..CALIBRATION_STEPS as usize].sort();
-                // Медиана — устойчивый физический вакуум
                 state.epsilon = h[CALIBRATION_STEPS as usize / 2]; 
                 state.is_born = true;
-                state.mode = 0; // S0: Aligned
+                state.mode = 0; 
             }
             state.last_noise = noise;
             return Ok(());
         }
 
-        // 3. РАБОЧИЙ ЦИКЛ (S0, S1, S2)
+        // РАБОЧИЙ ЦИКЛ
         let h_idx = state.head as usize;
         state.history[h_idx] = delta;
         state.head = (state.head + 1) % 16;
@@ -86,7 +84,6 @@ pub mod orbital_pulse {
         state.prev_variance_index = state.variance_index;
         state.variance_index = (state.variance_index.saturating_mul(4).saturating_add(f_log)) / 5;
 
-        // Реляционная логика управления (x_control)
         let x_max = state.variance_index.max(state.epsilon);
         let x_step = x_max / 10;
         let grad = state.variance_index as i64 - state.prev_variance_index as i64;
@@ -94,12 +91,12 @@ pub mod orbital_pulse {
         let phi_crit = state.epsilon.saturating_mul(2);
 
         match state.mode {
-            0 => { // S0: Покой
+            0 => {
                 if state.variance_index > phi_crit {
                     state.mode = 2; state.x_control = x_step;
                 }
             },
-            2 => { // S2: Эволюция (Набор давления)
+            2 => {
                 if state.variance_index < state.epsilon && grad.abs() < (thr as i64) {
                     state.mode = 0; state.x_control = 0;
                 } else {
@@ -107,7 +104,7 @@ pub mod orbital_pulse {
                     if state.x_control >= (x_max * 9 / 10) { state.mode = 1; }
                 }
             },
-            1 => { // S1: Контроль (Максимальное давление)
+            1 => {
                 state.x_control = x_max;
                 if state.variance_index <= phi_crit && grad <= 0 {
                     state.mode = 0; state.x_control = 0;
@@ -118,7 +115,6 @@ pub mod orbital_pulse {
             _ => state.mode = 2,
         }
 
-        // Резонанс (Минтинг в S0)
         if state.mode == 0 && delta < state.epsilon {
             let seeds = &[b"orbital-genesis".as_ref(), &[ctx.bumps.mint]];
             token::mint_to(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), MintTo {
