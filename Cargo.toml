@@ -3,6 +3,7 @@ members = ["programs/*"]
 resolver = "2"
 
 [patch.crates-io]
-# Перехватываем библиотеки, требующие edition2024
+# Откатываем wit-bindgen на версию, которая НЕ требует Rust 1.87
 wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", tag = "v0.24.0" }
+# Фиксируем blake3
 blake3 = { git = "https://github.com/BLAKE3-team/BLAKE3", tag = "1.5.1" }
