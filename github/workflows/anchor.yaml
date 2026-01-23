@@ -1,0 +1,64 @@
+name: Anchor Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Everything (Single Shell Session)
+        run: |
+          set -e
+          
+          # System dependencies
+          echo "=== Installing System Dependencies ==="
+          sudo apt-get update
+          sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
+          
+          # Install LATEST Rust
+          echo "=== Installing Latest Rust Nightly ==="
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+          source $HOME/.cargo/env
+          rustup component add rustfmt clippy
+          
+          echo "=== Rust Version ==="
+          rustc --version
+          cargo --version
+          
+          # Install Solana
+          echo "=== Installing Solana ==="
+          wget -q https://github.com/solana-labs/solana/releases/download/v1.17.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
+          
+          # Install Anchor
+          echo "=== Installing Anchor CLI ==="
+          npm install -g @coral-xyz/anchor-cli@0.29.0
+          
+          # КРИТИЧНО: Удалить Lock из Git cache И из файловой системы
+          echo "=== Force removing ALL Cargo.lock files ==="
+          git rm -rf --cached Cargo.lock 2>/dev/null || true
+          git rm -rf --cached "programs/*/Cargo.lock" 2>/dev/null || true
+          find . -name "Cargo.lock" -type f -delete
+          
+          # Показать что осталось (должно быть пусто)
+          echo "=== Checking for remaining Lock files ==="
+          find . -name "Cargo.lock" -type f || echo "No Cargo.lock found - OK"
+          
+          # Setup Solana key
+          echo "=== Setting up Solana keypair ==="
+          mkdir -p ~/.config/solana
+          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || true
+          
+          # Build (создаст НОВЫЙ Lock v4 с правильным Cargo)
+          echo "=== Starting Anchor Build ==="
+          export RUSTC_BOOTSTRAP=1
+          anchor build
+          
+          echo "=== Build Complete ==="
