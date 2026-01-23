@@ -25,9 +25,16 @@ jobs:
           source $HOME/.cargo/env
           rustup component add rustfmt clippy
           
-          echo "=== Rust Version ==="
-          rustc --version
-          cargo --version
+          echo "=== Making Rust available system-wide ==="
+          # КРИТИЧНО: Создаём symlinks в /usr/local/bin (в PATH по умолчанию)
+          sudo ln -sf $HOME/.cargo/bin/cargo /usr/local/bin/cargo
+          sudo ln -sf $HOME/.cargo/bin/rustc /usr/local/bin/rustc
+          sudo ln -sf $HOME/.cargo/bin/rustup /usr/local/bin/rustup
+          
+          echo "=== Verifying Rust Installation ==="
+          echo "rustc: $(rustc --version)"
+          echo "cargo: $(cargo --version)"
+          echo "cargo path: $(which cargo)"
           
           echo "=== Installing Solana ==="
           wget -q https://github.com/solana-labs/solana/releases/download/v1.17.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2
@@ -37,10 +44,14 @@ jobs:
           echo "=== Installing Anchor CLI ==="
           npm install -g @coral-xyz/anchor-cli@0.29.0
           
-          echo "=== Regenerating Cargo.lock with NEW Cargo ==="
+          echo "=== Removing old Lock files ==="
           rm -f Cargo.lock programs/*/Cargo.lock
+          find . -name "Cargo.lock" -type f -delete
+          
+          echo "=== Generating NEW Cargo.lock with Cargo 1.95 ==="
           cargo generate-lockfile
-          echo "Lock version: $(head -1 Cargo.lock)"
+          echo "Generated Lock version:"
+          head -3 Cargo.lock
           
           echo "=== Setting up Solana keypair ==="
           mkdir -p ~/.config/solana
@@ -48,6 +59,10 @@ jobs:
           
           echo "=== Building Anchor Program ==="
           export RUSTC_BOOTSTRAP=1
+          
+          # Verify cargo AGAIN before anchor build
+          echo "Final cargo check: $(cargo --version)"
+          
           anchor build
           
           echo "=== Build Complete ==="
