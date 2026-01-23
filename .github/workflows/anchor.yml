@@ -17,12 +17,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
 
-      - name: Install Rust Nightly
-        uses: dtolnay/rust-toolchain@nightly
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly-2025-01-01 # Используем версию 2025 года, где Edition 2024 уже стабилизирована в парсере
+          toolchain: 1.82.0 # Стабильная версия
 
-      - name: Install Solana (Direct Download)
+      - name: Install Solana
         run: |
           wget https://github.com/solana-labs/solana/releases/download/v1.17.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2
           tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
@@ -40,7 +40,7 @@ jobs:
       - name: Build Program
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
-          # Разрешаем нестабильные фичи для сборки внешних библиотек
           export RUSTC_BOOTSTRAP=1
-          # Игнорируем несовместимые версии в реестре
+          # УДАЛЯЕМ старый lock-файл, чтобы избежать ошибки "lock file version 4"
+          rm -f Cargo.lock
           anchor build
