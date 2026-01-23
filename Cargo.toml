@@ -3,11 +3,12 @@ members = ["programs/*"]
 resolver = "2"
 
 [patch.crates-io]
-# Фиксируем blake3, чтобы избежать ошибки Rust 2024
+# Фиксируем borsh на версии, не требующей Rust 1.77
+borsh = { git = "https://github.com/near/borsh-rs", tag = "v1.5.1" }
+# Фиксируем blake3 (предотвращаем Rust 2024)
 blake3 = { git = "https://github.com/BLAKE3-team/BLAKE3", tag = "1.5.1" }
-# Исправляем проблему с rustc 1.75
+# Фиксируем solana-program (предотвращаем требование Rust 1.75)
 solana-program = { git = "https://github.com/solana-labs/solana", tag = "v1.17.0" }
-# Исправляем проблему с toml_datetime
+# Фиксируем вспомогательные библиотеки
 toml_datetime = { git = "https://github.com/toml-rs/toml", tag = "toml_datetime-v0.6.3" }
-# Оставляем патч для wit-bindgen
 wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", tag = "v0.24.0" }
