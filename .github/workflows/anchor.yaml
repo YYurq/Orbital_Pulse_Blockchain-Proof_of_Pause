@@ -18,26 +18,25 @@ jobs:
 
       - name: Build Program
         run: |
-          # 1. Установка Solana CLI
-          sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
+          # 1. Надежная установка Solana (с повторами при сбое сети)
+          # Используем альтернативный стабильный адрес
+          sh -c "$(curl -sSfL --retry 5 --connect-timeout 30 https://release.anza.xyz/v1.18.18/install)"
           
-          # 2. ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ПУТЕЙ
-          # Добавляем бинарные файлы Solana в PATH текущей сессии
+          # 2. Обновление путей
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           
-          # Проверка: видит ли система теперь solana-keygen и cargo-build-sbf?
-          solana --version
+          # Проверка установки
+          solana --version || (echo "Solana install failed, trying fallback" && sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)")
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           
           # 3. Установка Anchor CLI
           npm install -g @coral-xyz/anchor-cli@0.30.1
           
-          # 4. ФИКС ЗАВИСИМОСТЕЙ (Уже проверенный нами метод)
-          # Это решает проблему с edition 2024 и constant_time_eq
+          # 4. Фикс зависимостей (наша победная стратегия)
           cargo generate-lockfile
           cargo update -p blake3 --precise 1.5.0
           
-          # 5. СБОРКА
-          # Теперь команда увидит build-sbf, так как мы обновили PATH выше
+          # 5. Сборка
           anchor build
 
       - name: Upload Artifacts
