@@ -1,8 +1,14 @@
+[workspace]
+members = [
+    "programs/*"
+]
+resolver = "2"
+
 [patch.crates-io]
-# Наш локальный фикс для constant_time_eq
+# 1. Наш локальный фикс для constant_time_eq (решает проблему Edition 2024)
 constant_time_eq = { path = "./fix/constant_time_eq" }
 
-# Принудительно откатываем корень всех проблем с Rust 1.82/1.76
+# 2. Принудительный откат глобальных библиотек до версий, совместимых с Rust 1.75
 indexmap = { git = "https://github.com/indexmap-rs/indexmap", tag = "2.2.6" }
 toml_datetime = { git = "https://github.com/toml-rs/toml", tag = "toml_datetime-v0.6.3" }
 toml_edit = { git = "https://github.com/toml-rs/toml", tag = "toml_edit-v0.21.1" }
