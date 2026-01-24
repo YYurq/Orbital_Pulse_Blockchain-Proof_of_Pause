@@ -15,7 +15,7 @@ jobs:
 
       - name: Create Local Fix
         run: |
-          # Фикс для constant_time_eq (Edition 2024 workaround)
+          # Фикс для constant_time_eq (решает проблему Edition 2024)
           mkdir -p fix/constant_time_eq/src
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
@@ -58,23 +58,24 @@ jobs:
           rm -f Cargo.lock
           cargo generate-lockfile
           
-          echo "=== ПРИМЕНЕНИЕ СОГЛАСОВАННЫХ ВЕРСИЙ ==="
+          echo "=== ГЛОБАЛЬНАЯ ОЧИСТКА ЗАВИСИМОСТЕЙ ==="
           
           # 1. Активируем локальный патч
           cargo update -p constant_time_eq
           
-          # 2. Откатываем Borsh (уже проверено, работает)
-          cargo update -p borsh@1.6.0 --precise 1.5.1
+          # 2. НОВОЕ: Откатываем indexmap, который теперь требует Rust 1.82
+          cargo update -p indexmap@2.13.0 --precise 2.2.6 || cargo update -p indexmap --precise 2.2.6
           
-          # 3. Откатываем макросы (уже проверено, работает)
+          # 3. Откатываем Borsh и макросы (уже пройденные этапы)
+          cargo update -p borsh@1.6.0 --precise 1.5.1
           cargo update -p proc-macro-crate@3.4.0 --precise 3.1.0
           
-          # 4. ФИНАЛЬНЫЙ ПАЗЛ: Подбираем версию под proc-macro-crate 3.1.0
-          # Как показал твой лог, ему нужна версия 0.21.x
+          # 4. Согласовываем toml версии
           cargo update -p toml_edit@0.22.15 --precise 0.21.1 || cargo update -p toml_edit --precise 0.21.1
+          cargo update -p toml_datetime --precise 0.6.3
           
           # 5. Исправление формата лок-файла (v4 -> v3)
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
-          # ТЕПЕРЬ СТРОИМ!
+          # СБОРКА
           anchor build
