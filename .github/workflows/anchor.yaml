@@ -9,6 +9,7 @@ on:
 env:
   SOLANA_VERSION: '1.18.18'
   ANCHOR_VERSION: '0.30.1'
+  CARGO_UNSTABLE_NEXT_LOCKFILE_BUMP: 'true'
 
 jobs:
   build-and-test:
@@ -47,7 +48,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: nightly
           components: rustfmt, clippy
 
       - name: Install Solana
@@ -78,7 +79,6 @@ jobs:
       - name: Build program
         run: |
           find . -name "Cargo.lock" -type f -delete
-          cargo generate-lockfile
           anchor build
 
       - name: Run Cargo tests
