@@ -32,7 +32,7 @@ jobs:
       - name: Install Anchor
         run: npm install -g @coral-xyz/anchor-cli@0.29.0
 
-      - name: Build with Unstable Features
+      - name: Build with Lockfile Fix
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           
@@ -40,14 +40,15 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # ВКЛЮЧАЕМ ПОДДЕРЖКУ EDITION 2024
-          # RUSTC_BOOTSTRAP разблокирует нестабильные фичи в стабильном окружении
-          # CARGO_UNSTABLE_EDITION_2024 разрешает парсить новые конфиги
+          # Глобальные флаги для поддержки новых стандартов
           export RUSTC_BOOTSTRAP=1
           export CARGO_UNSTABLE_EDITION_2024=true
+          # Эта переменная — ключ к решению твоей последней ошибки
+          export CARGO_Z_NEXT_LOCKFILE_BUMP=true 
           
-          # Очистка
+          # Очистка и перегенерация с нужным флагом
           rm -f Cargo.lock
+          cargo +nightly generate-lockfile -Znext-lockfile-bump
           
-          # Сборка
-          anchor build
+          # Запускаем сборку, прокидывая флаг внутрь Cargo
+          anchor build -- -- -Znext-lockfile-bump
