@@ -24,10 +24,13 @@ jobs:
           
           cargo generate-lockfile
           
-          # Мы фиксируем версию на 0.22.27, так как 0.21.0 конфликтует с новыми зависимостями toml
-          cargo update -p toml_edit --precise 0.22.27
+          # Решаем проблему неоднозначности: обновляем все найденные версии toml_edit
+          # Мы используем спецификации прямо из твоей ошибки в логах
+          cargo update -p toml_edit@0.21.1 --precise 0.22.27 || echo "0.21.1 skip"
+          cargo update -p toml_edit@0.22.27 --precise 0.22.27 || echo "0.22.27 skip"
+          cargo update -p toml_edit@0.23.10+spec-1.0.0 --precise 0.22.27 || echo "0.23 skip"
           
-          # Твои остальные рабочие откаты
+          # Твои стандартные откаты для стабильности
           cargo update -p proc-macro-crate --precise 3.1.0
           cargo update -p toml_datetime --precise 0.6.5
           cargo update -p indexmap --precise 2.2.6
@@ -35,7 +38,7 @@ jobs:
           cargo update -p ahash --precise 0.8.6
           cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh ok"
           
-          # Важный фикс для совместимости формата локфайла
+          # Фикс версии локфайла
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
           anchor build
