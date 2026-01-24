@@ -1,95 +1,96 @@
-name: Anchor Build
+name: Anchor Build & Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+
+env:
+  SOLANA_VERSION: '1.18.18'
+  ANCHOR_VERSION: '0.30.1'
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Create Heavy Duty Patches
-        run: |
-          mkdir -p fix/constant_time_eq/src fix/indexmap/src fix/toml_datetime/src fix/toml_edit/src fix/toml_parser/src
-          
-          # 1. constant_time_eq
-          echo '[package]' > fix/constant_time_eq/Cargo.toml
-          echo 'name = "constant_time_eq"' >> fix/constant_time_eq/Cargo.toml
-          echo 'version = "0.4.2"' >> fix/constant_time_eq/Cargo.toml
-          echo 'edition = "2021"' >> fix/constant_time_eq/Cargo.toml
-          echo 'pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool { a == b }' > fix/constant_time_eq/src/lib.rs
-
-          # 2. indexmap (Мимикрия под 2.13.0)
-          cat > fix/indexmap/Cargo.toml <<EOF
-          [package]
-          name = "indexmap"
-          version = "2.13.0"
-          edition = "2021"
-          EOF
-          echo 'pub struct IndexMap<K, V>(std::marker::PhantomData<(K, V)>);' > fix/indexmap/src/lib.rs
-
-          # 3. toml_datetime (Мимикрия под 0.7.5)
-          cat > fix/toml_datetime/Cargo.toml <<EOF
-          [package]
-          name = "toml_datetime"
-          version = "0.7.5"
-          edition = "2021"
-          EOF
-          echo 'pub struct Date; pub struct Time; pub struct DateTime;' > fix/toml_datetime/src/lib.rs
-
-          # 4. toml_edit (Мимикрия под 0.23.10)
-          cat > fix/toml_edit/Cargo.toml <<EOF
-          [package]
-          name = "toml_edit"
-          version = "0.23.10"
-          edition = "2021"
-          [dependencies]
-          toml_datetime = "0.7.5"
-          EOF
-          echo 'pub struct Document;' > fix/toml_edit/src/lib.rs
-
-          # 5. toml_parser (ФИНАЛЬНЫЙ АККОРД: Мимикрия под 1.0.6)
-          cat > fix/toml_parser/Cargo.toml <<EOF
-          [package]
-          name = "toml_parser"
-          version = "1.0.6+spec-1.1.0"
-          edition = "2021"
-          EOF
-          echo 'pub struct Parser;' > fix/toml_parser/src/lib.rs
-
-      - name: Install Solana & Anchor
-        run: |
-          sudo apt-get update && sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
-          wget -q https://github.com/solana-labs/solana/releases/download/v1.18.12/solana-release-x86_64-unknown-linux-gnu.tar.bz2
-          tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
-          echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
-          npm install -g @coral-xyz/anchor-cli@0.29.0
-
-      - name: Build
-        run: |
-          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
-          mkdir -p ~/.config/solana
-          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
-          
-          rm -f Cargo.lock
-          cargo generate-lockfile
-          # Откат Borsh
-          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh ok"
-          
-          # Фикс формата лок-файла
-          sed -i 's/version = 4/version = 3/g' Cargo.lock
-          
-          anchor build
-
-      - name: Upload Artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
+      - name: Cache Solana tools
+        uses: actions/cache@v3
         with:
-          name: anchor-build
-          path: target/deploy/*.so
+          path: |
+            ~/.cache/solana
+            ~/.local/share/solana
+          key: ${{ runner.os }}-solana-${{ env.SOLANA_VERSION }}
+          
+      - name: Cache Cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: Cache Cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: Cache target directory
+        uses: actions/cache@v3
+        with:
+          path: ./target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          components: rustfmt, clippy
+
+      - name: Install Solana
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          
+      - name: Install Anchor CLI
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked --force
+
+      - name: Show versions
+        run: |
+          solana --version
+          anchor --version
+          rustc --version
+          cargo --version
+
+      - name: Build program
+        run: anchor build
+
+      - name: Run Cargo tests
+        run: cargo test --manifest-path programs/orbital_pulse/Cargo.toml
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Anchor tests
+        run: anchor test --skip-local-validator
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            target/deploy/*.so
+            target/idl/*.json
