@@ -1,3 +1,15 @@
+[toolchain]
+
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+orbital_pulse = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
+
+[programs.devnet]
+orbital_pulse = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
+
 [programs.mainnet]
 orbital_pulse = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
 
@@ -5,7 +17,7 @@ orbital_pulse = "3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "mainnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
