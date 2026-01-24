@@ -40,7 +40,7 @@ jobs:
           
           # Стандартные фиксы для Rust 1.75
           cargo update -p blake3 --precise 1.5.1
-          cargo update -p ahash --precise 0.8.6
+          cargo update -p ahash:0.8.6 --precise 0.8.6 || echo "ahash already 0.8.6"
           cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh ok"
           
           # 4. ФИКС ВЕРСИИ ЛОК-ФАЙЛА
