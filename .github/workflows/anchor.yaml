@@ -32,38 +32,40 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           rustup default nightly
           
-          echo "=== 3. Install Solana Toolchain ==="
+          echo "=== 3. Install Solana ==="
           wget -q https://github.com/solana-labs/solana/releases/download/v1.17.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2
           tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
           echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$HOME/.cargo/bin:$PATH"
           
-          echo "=== 4. Install Anchor CLI ==="
+          echo "=== 4. Install Anchor ==="
           npm install -g @coral-xyz/anchor-cli@0.29.0
           
           echo "=== 5. Setup Keypair ==="
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
           
-          echo "=== 6. Force Resolve Dependencies ==="
-          # Сначала генерируем чистый лок
+          echo "=== 6. Force Resolve Dependencies (Registry Only) ==="
+          # Генерируем лок-файл
           cargo generate-lockfile
           
-          # СИЛОВОЕ ПОНИЖЕНИЕ: мы заставляем Cargo забыть про новые версии
-          echo "Removing high-version crates from lock..."
+          # Мы ПРИНУДИТЕЛЬНО указываем версии из реестра. 
+          # Это работает всегда, так как не зависит от тегов на GitHub.
+          echo "Downgrading all incompatible crates..."
           cargo update -p borsh --precise 1.5.1 || echo "borsh skip"
           cargo update -p borsh-derive --precise 1.5.1 || echo "borsh-derive skip"
           cargo update -p indexmap --precise 1.9.3 || echo "indexmap skip"
           cargo update -p blake3 --precise 1.5.1 || echo "blake3 skip"
           cargo update -p solana-program --precise 1.17.0 || echo "solana skip"
           
-          echo "=== 7. Final Lock Hack (v4 -> v3) ==="
+          echo "=== 7. Lock Version Hack (v4 -> v3) ==="
+          # Меняем формат ПОСЛЕ всех обновлений
           sed -i 's/version = 4/version = 3/g' Cargo.lock
-          echo "Locked to v3 format"
+          echo "Lockfile format forced to v3"
           
           echo "=== 8. Build Anchor Program ==="
           export RUSTC_BOOTSTRAP=1
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$HOME/.cargo/bin:$PATH"
           
-          # Финальная сборка
+          # Запускаем билд
           anchor build -- --offline || anchor build
