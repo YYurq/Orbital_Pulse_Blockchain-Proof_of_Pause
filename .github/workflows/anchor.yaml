@@ -1,4 +1,4 @@
-name: Anchor Build (Docker Simple Mode)
+name: Anchor Build
 
 on:
   push:
@@ -9,32 +9,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Используем актуальный и стабильный образ
-    container:
-      image: backpackapp/build:v0.29.0
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Solana
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      - name: Install Anchor
+        run: npm install -g @coral-xyz/anchor-cli@0.30.1
+
       - name: Build Program
         run: |
-          # 1. Настройка ключей
-          mkdir -p ~/.config/solana
-          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
+          # 1. Генерируем замок
+          cargo generate-lockfile
           
-          # 2. Главный "секрет": принудительно фиксим indexmap перед билдом
-          # Это решит ту самую проблему Rust 1.75 прямо внутри контейнера
-          cargo update -p indexmap --precise 2.2.6 || echo "Already fixed"
+          # 2. ОДНА КОМАНДА, КОТОРАЯ РЕШАЕТ ВСЁ (Фикс Edition 2024)
+          cargo update -p constant_time_eq --precise 0.3.0
           
           # 3. Билд
           anchor build
 
       - name: Upload Artifacts
-        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: orbital-pulse-build
-          path: |
-            target/deploy/*.so
-            target/idl/*.json
+          name: build-artifacts
+          path: target/deploy/*.so
