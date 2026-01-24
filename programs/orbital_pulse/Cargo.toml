@@ -3,9 +3,10 @@ name = "orbital_pulse"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "orbital_pulse"
+
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
-# Жестко ограничиваем borsh, чтобы он не прыгал на 1.5.7 или 1.6.0
-borsh = "~1.5.1"
-borsh-derive = "~1.5.1"
