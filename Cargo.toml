@@ -3,5 +3,4 @@ members = ["programs/*"]
 resolver = "2"
 
 [patch.crates-io]
-# Оставляем только самый стабильный патч
 solana-program = { git = "https://github.com/solana-labs/solana", tag = "v1.17.0" }
