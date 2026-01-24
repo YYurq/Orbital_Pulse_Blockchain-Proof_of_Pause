@@ -4,10 +4,6 @@ members = [
 ]
 resolver = "2"
 
-[patch.crates-io]
-blake3 = "=1.5.1"
-constant_time_eq = "=0.3.0"
-
 [profile.release]
 overflow-checks = true
 lto = "fat"
