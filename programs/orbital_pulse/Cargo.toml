@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
+# Фиксируем версию здесь, чтобы перебить автоматический выбор 0.4.2
+constant_time_eq = "=0.3.1"
