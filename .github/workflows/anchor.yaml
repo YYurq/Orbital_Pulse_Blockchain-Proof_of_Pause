@@ -15,19 +15,14 @@ jobs:
 
       - name: Create Local Fix
         run: |
-          # 1. Создаем структуру папок для локального патча
+          # Наш старый добрый патч для constant_time_eq, чтобы не лезть в интернет
           mkdir -p fix/constant_time_eq/src
-          
-          # 2. Пишем Cargo.toml, который прикидывается версией 0.4.2 (чтобы blake3 был доволен),
-          # но использует стабильный edition 2021.
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
           name = "constant_time_eq"
           version = "0.4.2"
           edition = "2021"
           EOF
-          
-          # 3. Пишем минимальный код библиотеки, чтобы всё скомпилировалось
           cat > fix/constant_time_eq/src/lib.rs <<EOF
           #[inline(never)]
           pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
@@ -62,13 +57,15 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Удаляем старые локи и собираем
+          # Очистка локов
           rm -f Cargo.lock
-          
-          # Генерируем лок. Cargo увидит наш локальный патч и не пойдет в интернет.
           cargo generate-lockfile
           
-          # Хак формата для Solana 1.18
+          echo "=== РЕШАЕМ ПРОБЛЕМУ TOML_DATETIME ==="
+          # Откатываем библиотеку до версии, совместимой с Rust 1.75
+          cargo update -p toml_datetime --precise 0.6.3
+          
+          # Хак формата для Solana 1.18 (v4 -> v3)
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
           # Сборка
