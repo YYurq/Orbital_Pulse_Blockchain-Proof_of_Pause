@@ -21,7 +21,7 @@ jobs:
       - name: Install Rust (stable for Anchor CLI compatibility)
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.79.0
+          toolchain: 1.84.0
           components: rustfmt, clippy
 
       - name: Install Solana
@@ -54,7 +54,6 @@ jobs:
           rm -rf ~/.cargo/registry
           rm -rf ~/.cargo/git
           find . -name "Cargo.lock" -type f -delete
-          cargo search anchor-lang --limit 1
           anchor build
 
       - name: Run Cargo tests
