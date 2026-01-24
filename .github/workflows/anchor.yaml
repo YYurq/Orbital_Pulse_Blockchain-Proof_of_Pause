@@ -13,8 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Install Rust (LATEST)
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.81.0  # Эта версия понимает все новые фишки и edition2024
 
       - name: Install Solana
         run: |
@@ -26,13 +28,7 @@ jobs:
 
       - name: Build Program
         run: |
-          # 1. Генерируем замок
-          cargo generate-lockfile
-          
-          # 2. ОДНА КОМАНДА, КОТОРАЯ РЕШАЕТ ВСЁ (Фикс Edition 2024)
-          cargo update -p constant_time_eq --precise 0.3.0
-          
-          # 3. Билд
+          # Больше никаких патчей! Просто собираем.
           anchor build
 
       - name: Upload Artifacts
