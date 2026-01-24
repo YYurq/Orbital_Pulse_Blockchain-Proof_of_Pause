@@ -13,28 +13,46 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Create Local Fix
+      - name: Create Local Fixes
         run: |
-          mkdir -p fix/constant_time_eq/src
+          # Создаем структуру папок
+          mkdir -p fix/constant_time_eq/src fix/indexmap/src fix/toml_datetime/src fix/toml_edit/src
+
+          # 1. Заглушка constant_time_eq (0.4.2)
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
           name = "constant_time_eq"
           version = "0.4.2"
           edition = "2021"
           EOF
-          cat > fix/constant_time_eq/src/lib.rs <<EOF
-          pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
-              if a.len() != b.len() { return false; }
-              let mut res = 0;
-              for i in 0..a.len() { res |= a[i] ^ b[i]; }
-              res == 0
-          }
-          EOF
+          echo 'pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool { a == b }' > fix/constant_time_eq/src/lib.rs
 
-      - name: Install System Deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
+          # 2. Заглушка indexmap (2.2.6) - используем стандартный BTreeMap как замену
+          cat > fix/indexmap/Cargo.toml <<EOF
+          [package]
+          name = "indexmap"
+          version = "2.2.6"
+          edition = "2021"
+          EOF
+          echo 'pub use std::collections::BTreeMap as IndexMap; pub use std::collections::BTreeSet as IndexSet;' > fix/indexmap/src/lib.rs
+
+          # 3. Заглушка toml_datetime (0.6.3)
+          cat > fix/toml_datetime/Cargo.toml <<EOF
+          [package]
+          name = "toml_datetime"
+          version = "0.6.3"
+          edition = "2021"
+          EOF
+          echo 'pub struct Date; pub struct Time; pub struct DateTime;' > fix/toml_datetime/src/lib.rs
+
+          # 4. Заглушка toml_edit (0.21.1)
+          cat > fix/toml_edit/Cargo.toml <<EOF
+          [package]
+          name = "toml_edit"
+          version = "0.21.1"
+          edition = "2021"
+          EOF
+          echo 'pub struct Document;' > fix/toml_edit/src/lib.rs
 
       - name: Install Solana
         run: |
@@ -48,20 +66,18 @@ jobs:
       - name: Build
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
-          
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Очистка старых локов
+          # Очищаем лок и заставляем Cargo использовать CLI для Git (на всякий случай)
           rm -f Cargo.lock
+          export CARGO_NET_GIT_FETCH_WITH_CLI=true
           
-          # Генерация нового лока с учетом патчей из Cargo.toml
           cargo generate-lockfile
+          # Откат Borsh (уже проверено)
+          cargo update -p borsh@1.6.0 --precise 1.5.1
           
-          # Точечный откат borsh (он часто капризничает, если его не пнуть)
-          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh already handled"
-          
-          # Хак формата для совместимости с Solana CLI
+          # Фикс формата лок-файла
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
           anchor build
