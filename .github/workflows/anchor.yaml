@@ -15,7 +15,7 @@ jobs:
 
       - name: Create Local Fix
         run: |
-          # Наша локальная заглушка для constant_time_eq
+          # Создаем локальную заглушку (это решает проблему Edition 2024)
           mkdir -p fix/constant_time_eq/src
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
@@ -54,22 +54,24 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Сброс и генерация лок-файла
+          # 1. Генерируем лок-файл
           rm -f Cargo.lock
           cargo generate-lockfile
           
-          echo "=== УТОЧНЯЕМ ОТКАТ BORSH (SPECIFIC VERSION) ==="
-          # Мы указываем @1.6.0, чтобы Cargo понял, какую именно ветку borsh мы лечим
-          cargo update -p borsh@1.6.0 --precise 1.5.1
-          cargo update -p borsh-derive@1.6.0 --precise 1.5.1
+          echo "=== АКТИВАЦИЯ ПАТЧЕЙ И ОТКАТОВ ==="
           
-          # Откатываем остальные звенья (здесь обычно нет дублей, но добавим страховку)
-          cargo update -p proc-macro-crate --precise 3.1.0
+          # Активируем локальный патч (теперь он точно применится)
+          cargo update -p constant_time_eq
+          
+          # Откатываем проблемную ветку Borsh (теперь без ошибок)
+          cargo update -p borsh@1.6.0 --precise 1.5.1
+          
+          # Откатываем TOML (цепочка, требующая Rust 1.76)
           cargo update -p toml_edit --precise 0.22.15
           cargo update -p toml_datetime --precise 0.6.3
           
-          # Исправление формата лок-файла для Solana (v4 -> v3)
+          # Хак формата лок-файла для Solana (v4 -> v3)
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
-          # Финальный запуск
+          # ФИНАЛЬНЫЙ БОЙ
           anchor build
