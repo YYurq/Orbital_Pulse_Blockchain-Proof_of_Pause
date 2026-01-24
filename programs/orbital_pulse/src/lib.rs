@@ -8,8 +8,6 @@ declare_id!("3o6We5WQoGDM6wpQMPq5VE3fjvC7zgCUD56X12vLn917");
 
 const CALIBRATION_STEPS: u8 = 16; 
 
-
-
 #[program]
 pub mod orbital_pulse {
     use super::*;
@@ -17,9 +15,11 @@ pub mod orbital_pulse {
     pub fn initialize(ctx: Context<Initialize>, threshold_percent: u64) -> Result<()> {
         let state = &mut ctx.accounts.state;
         state.authority = ctx.accounts.signer.key();
+        
         state.history = [0u64; 16]; 
         state.calib_count = 0;
         state.is_born = false;
+        
         state.gradient_threshold_percent = threshold_percent.clamp(1, 10);
         state.mode = 255; 
         state.epsilon = 0;
@@ -34,16 +34,19 @@ pub mod orbital_pulse {
 
     pub fn try_transition(ctx: Context<Transition>) -> Result<()> {
         let state = &mut ctx.accounts.state;
+        
         let data = ctx.accounts.slot_hashes.try_borrow_data()?;
         let hash: [u8; 32] = data[12..44].try_into().map_err(|_| ErrorCode::HashNotFound)?;
         let n_hash = hashv(&[&hash, &state.authority.to_bytes()]);
         let noise = u64::from_le_bytes(n_hash.as_ref()[0..8].try_into().unwrap());
         let delta = if noise > state.last_noise { noise - state.last_noise } else { state.last_noise - noise };
 
+        // ФАЗА РОЖДЕНИЯ (Медианная калибровка)
         if !state.is_born {
             let idx = state.calib_count as usize; 
             state.history[idx] = delta;
             state.calib_count += 1;
+
             if state.calib_count == CALIBRATION_STEPS {
                 let mut h = state.history;
                 h[0..CALIBRATION_STEPS as usize].sort();
@@ -55,9 +58,11 @@ pub mod orbital_pulse {
             return Ok(());
         }
 
+        // РАБОЧИЙ ЦИКЛ
         let h_idx = state.head as usize;
         state.history[h_idx] = delta;
         state.head = (state.head + 1) % 16;
+
         let d_v = state.current_depth as u128;
         let mut sum: u128 = 0;
         let c_h = state.head as usize;
@@ -87,7 +92,11 @@ pub mod orbital_pulse {
         let phi_crit = state.epsilon.saturating_mul(2);
 
         match state.mode {
-            0 => if state.variance_index > phi_crit { state.mode = 2; state.x_control = x_step; },
+            0 => {
+                if state.variance_index > phi_crit {
+                    state.mode = 2; state.x_control = x_step;
+                }
+            },
             2 => {
                 if state.variance_index < state.epsilon && grad.abs() < (thr as i64) {
                     state.mode = 0; state.x_control = 0;
@@ -115,6 +124,7 @@ pub mod orbital_pulse {
                 authority: ctx.accounts.mint.to_account_info(),
             }, &[&seeds[..]]), 100_000_000)?;
         }
+
         state.last_noise = noise;
         Ok(())
     }
@@ -122,29 +132,50 @@ pub mod orbital_pulse {
 
 #[account]
 pub struct PulseState {
-    pub authority: Pubkey, pub last_noise: u64, pub epsilon: u64,
-    pub history: [u64; 16], pub current_depth: u8, pub head: u8,                 
-    pub variance_index: u64, pub prev_variance_index: u64,
-    pub gradient_threshold_percent: u64, pub x_control: u64, 
-    pub mode: u8, pub calib_count: u8, pub is_born: bool,
+    pub authority: Pubkey, 
+    pub last_noise: u64, 
+    pub epsilon: u64,
+    pub history: [u64; 16], 
+    pub current_depth: u8, 
+    pub head: u8,                 
+    pub variance_index: u64, 
+    pub prev_variance_index: u64,
+    pub gradient_threshold_percent: u64, 
+    pub x_control: u64, 
+    pub mode: u8, 
+    pub calib_count: u8, 
+    pub is_born: bool,
 }
 
-impl PulseState { pub const LEN: usize = 8 + 32 + 8 + 8 + 128 + 1 + 1 + 8 + 8 + 8 + 8 + 1 + 1 + 1; }
+impl PulseState { 
+    pub const LEN: usize = 8 + 32 + 8 + 8 + 128 + 1 + 1 + 8 + 8 + 8 + 8 + 1 + 1 + 1; 
+}
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, payer = signer, space = PulseState::LEN)] 
-    pub state: Box<Account<'info, PulseState>>, // Используем Box
+    #[account(init, payer = signer, space = 8 + PulseState::LEN)] 
+    pub state: Account<'info, PulseState>,
     
-    #[account(init_if_needed, payer = signer, mint::decimals = 9, mint::authority = mint, seeds = [b"orbital-genesis"], bump)] 
+    #[account(
+        init, 
+        payer = signer, 
+        mint::decimals = 9, 
+        mint::authority = mint, 
+        seeds = [b"orbital-genesis"], 
+        bump
+    )] 
     pub mint: Account<'info, Mint>,
     
-    #[account(init_if_needed, payer = signer, associated_token::mint = mint, associated_token::authority = signer)] 
-    pub token_account: Box<Account<'info, TokenAccount>>, // Используем Box
+    #[account(
+        init, 
+        payer = signer, 
+        associated_token::mint = mint, 
+        associated_token::authority = signer
+    )] 
+    pub token_account: Account<'info, TokenAccount>,
     
     #[account(mut)] 
     pub signer: Signer<'info>, 
-    
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>, 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -154,21 +185,27 @@ pub struct Initialize<'info> {
 #[derive(Accounts)]
 pub struct Transition<'info> {
     #[account(mut)] 
-    pub state: Box<Account<'info, PulseState>>, // Используем Box
+    pub state: Account<'info, PulseState>,
     
     #[account(mut, seeds = [b"orbital-genesis"], bump)] 
     pub mint: Account<'info, Mint>,
     
     #[account(mut)] 
-    pub token_account: Box<Account<'info, TokenAccount>>, // Используем Box
+    pub token_account: Account<'info, TokenAccount>,
     
     #[account(address = slot_hashes::ID)] 
     pub slot_hashes: AccountInfo<'info>,
     
     #[account(mut)] 
     pub signer: Signer<'info>, 
+    
     pub token_program: Program<'info, Token>,
 }
 
 #[error_code]
-pub enum ErrorCode { #[msg("Hash Not Found")] HashNotFound, #[msg("Invalid Depth")] InvalidDepth }
+pub enum ErrorCode { 
+    #[msg("Hash Not Found")] 
+    HashNotFound, 
+    #[msg("Invalid Depth")] 
+    InvalidDepth 
+}
