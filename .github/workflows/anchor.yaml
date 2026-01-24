@@ -51,7 +51,10 @@ jobs:
 
       - name: Build program
         run: |
+          rm -rf ~/.cargo/registry
+          rm -rf ~/.cargo/git
           find . -name "Cargo.lock" -type f -delete
+          cargo search anchor-lang --limit 1
           anchor build
 
       - name: Run Cargo tests
