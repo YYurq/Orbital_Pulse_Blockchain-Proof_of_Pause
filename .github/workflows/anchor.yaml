@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Cache Solana
-        uses: actions/cache@v3
+        uses: actions/cache@v4 # Обновлено до v4
         with:
           path: |
             ~/.cache/solana
@@ -47,17 +47,14 @@ jobs:
 
       - name: Create Heavy Duty Patches
         run: |
-          # Создаем структуру для всех проблемных пакетов
           mkdir -p fix/constant_time_eq/src fix/indexmap/src fix/toml_datetime/src fix/toml_edit/src fix/toml_parser/src
           
-          # 1. constant_time_eq (0.4.2)
           echo '[package]' > fix/constant_time_eq/Cargo.toml
           echo 'name = "constant_time_eq"' >> fix/constant_time_eq/Cargo.toml
           echo 'version = "0.4.2"' >> fix/constant_time_eq/Cargo.toml
           echo 'edition = "2021"' >> fix/constant_time_eq/Cargo.toml
           echo 'pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool { a == b }' > fix/constant_time_eq/src/lib.rs
 
-          # 2. indexmap (Пустышка 2.13.0)
           cat > fix/indexmap/Cargo.toml <<EOF
           [package]
           name = "indexmap"
@@ -66,7 +63,6 @@ jobs:
           EOF
           echo 'pub struct IndexMap<K, V>(std::marker::PhantomData<(K, V)>);' > fix/indexmap/src/lib.rs
 
-          # 3. toml_edit (Заглушка 0.23.10)
           cat > fix/toml_edit/Cargo.toml <<EOF
           [package]
           name = "toml_edit"
@@ -75,7 +71,6 @@ jobs:
           EOF
           echo 'pub struct Document;' > fix/toml_edit/src/lib.rs
 
-          # 4. toml_parser (Заглушка 1.0.6)
           cat > fix/toml_parser/Cargo.toml <<EOF
           [package]
           name = "toml_parser"
@@ -86,7 +81,6 @@ jobs:
 
       - name: Force Patch via Cargo.toml
         run: |
-          # Мы ПЕРЕЗАПИСЫВАЕМ корневой Cargo.toml, чтобы патчи реально работали
           cat > Cargo.toml <<EOF
           [workspace]
           members = ["programs/*"]
@@ -104,14 +98,13 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           rm -f Cargo.lock
           cargo generate-lockfile
-          # Откат Borsh для Anchor 0.29.0
           cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh already ok"
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           anchor build
 
       - name: Upload Build Artifacts
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # Использование актуальной версии
         with:
           name: anchor-build
           path: |
