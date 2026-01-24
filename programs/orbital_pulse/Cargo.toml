@@ -8,8 +8,7 @@ crate-type = ["cdylib", "lib"]
 name = "orbital_pulse"
 
 [dependencies]
-anchor-lang = "0.28.0"
-anchor-spl = "0.28.0"
-# Эти два парня спасут нас от ошибки solana-pubkey
-spl-token = "=3.5.0"
-solana-program = "=1.17.0"
+anchor-lang = "0.29.0"
+anchor-spl = "0.29.0"
+# Borsh 0.10 — самая стабильная для этого состава
+borsh = "0.10.3"
