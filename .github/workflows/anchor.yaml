@@ -1,4 +1,4 @@
-name: Anchor Build
+name: Anchor Build & Check
 
 on:
   push:
@@ -10,29 +10,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust (LATEST)
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.81.0  # Эта версия понимает все новые фишки и edition2024
 
-      - name: Install Solana
+      - name: Install Solana & Anchor
         run: |
+          # Ставим только самое необходимое
           sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          npm install -g @coral-xyz/anchor-cli@0.30.1
 
-      - name: Install Anchor
-        run: npm install -g @coral-xyz/anchor-cli@0.30.1
-
-      - name: Build Program
+      - name: Fix Dependencies & Build
         run: |
-          # Больше никаких патчей! Просто собираем.
+          # 1. Исправляем одну единственную библиотеку, которая все ломает
+          # Мы откатываем blake3, чтобы она не требовала новый стандарт Rust
+          cargo update -p blake3 --precise 1.5.0
+          
+          # 2. Сборка
           anchor build
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: program-so
           path: target/deploy/*.so
