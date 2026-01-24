@@ -17,7 +17,7 @@ jobs:
         run: |
           mkdir -p fix/constant_time_eq/src fix/indexmap/src fix/toml_datetime/src fix/toml_edit/src fix/toml_parser/src
 
-          # 1. Заглушка constant_time_eq
+          # 1. constant_time_eq
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
           name = "constant_time_eq"
@@ -26,34 +26,36 @@ jobs:
           EOF
           echo 'pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool { a == b }' > fix/constant_time_eq/src/lib.rs
 
-          # 2. Заглушка indexmap
+          # 2. indexmap (Мимикрируем под 2.13.0, чтобы удовлетворить новые требования)
           cat > fix/indexmap/Cargo.toml <<EOF
           [package]
           name = "indexmap"
-          version = "2.2.6"
+          version = "2.13.0"
           edition = "2021"
           EOF
           echo 'pub use std::collections::BTreeMap as IndexMap; pub use std::collections::BTreeSet as IndexSet;' > fix/indexmap/src/lib.rs
 
-          # 3. Заглушка toml_datetime
+          # 3. toml_datetime (Мимикрируем под 0.7.5)
           cat > fix/toml_datetime/Cargo.toml <<EOF
           [package]
           name = "toml_datetime"
-          version = "0.6.3"
+          version = "0.7.5"
           edition = "2021"
           EOF
           echo 'pub struct Date; pub struct Time; pub struct DateTime;' > fix/toml_datetime/src/lib.rs
 
-          # 4. Заглушка toml_edit
+          # 4. toml_edit (Мимикрируем под 0.23.10 - ЭТО ГЛАВНЫЙ МОМЕНТ)
           cat > fix/toml_edit/Cargo.toml <<EOF
           [package]
           name = "toml_edit"
-          version = "0.21.1"
+          version = "0.23.10"
           edition = "2021"
+          [dependencies]
+          toml_datetime = "0.7.5"
           EOF
           echo 'pub struct Document;' > fix/toml_edit/src/lib.rs
 
-          # 5. НОВОЕ: Заглушка toml_parser
+          # 5. toml_parser (Мимикрируем под 1.0.6)
           cat > fix/toml_parser/Cargo.toml <<EOF
           [package]
           name = "toml_parser"
@@ -61,11 +63,6 @@ jobs:
           edition = "2021"
           EOF
           echo 'pub struct Parser;' > fix/toml_parser/src/lib.rs
-
-      - name: Install System Deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
 
       - name: Install Solana
         run: |
@@ -83,8 +80,9 @@ jobs:
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
           rm -f Cargo.lock
-          # Отключаем Git, работаем только с локальными патчами
           cargo generate-lockfile
+          
+          # Откат Borsh
           cargo update -p borsh@1.6.0 --precise 1.5.1
           
           sed -i 's/version = 4/version = 3/g' Cargo.lock
