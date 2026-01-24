@@ -2,7 +2,6 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause/anchor.yml?style=flat-square&branch=main)](https://github.com/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause/actions)
 [![Stars](https://img.shields.io/github/stars/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause?style=flat-square)](https://github.com/YYurq/Orbital_Pulse_Blockchain-Proof_of_Pause/stargazers)
-```
 
 # ORBITAL Pulse Blockchain  
 **Proof of Pause / Proof of Pulse**
