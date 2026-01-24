@@ -10,5 +10,3 @@ name = "orbital_pulse"
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
-# Borsh 0.10 — самая стабильная для этого состава
-borsh = "0.10.3"
