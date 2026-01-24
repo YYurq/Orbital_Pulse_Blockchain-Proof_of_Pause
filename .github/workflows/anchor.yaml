@@ -13,32 +13,35 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Solana & Anchor
+      - name: Setup Solana
         run: |
-          # Устанавливаем Solana 1.18.x (она современнее и решит конфликт с pubkey)
+          # Устанавливаем Solana в конкретную папку
           sh -c "$(curl -sSfL https://release.solana.com/v1.18.12/install)"
+          # Явно добавляем в PATH для всех последующих шагов
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-          
-          # Устанавливаем Anchor
-          npm install -g @coral-xyz/anchor-cli@0.29.0
 
-      - name: Build
+      - name: Install Anchor
+        run: npm install -g @coral-xyz/anchor-cli@0.29.0
+
+      - name: Build and Fix
         run: |
+          # Добавляем путь вручную для надежности в этом шаге
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           
           # Ключ
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Генерируем лок
+          # Генерируем Lock
           cargo generate-lockfile
           
-          # РЕШАЕМ ТУ САМУЮ ПЕРВУЮ ПРОБЛЕМУ:
-          # Заставляем borsh-derive быть версии 1.5.1, но borsh оставить 0.10
-          # Это предотвратит требование Rust 1.77
-          cargo update -p borsh --precise 0.10.3 || echo "ok"
+          # РЕШАЕМ ПРОБЛЕМУ AMBIGUOUS: указываем ПОЛНУЮ спецификацию версии 1.6.0
+          # Именно она требует Rust 1.77, поэтому мы ее ПРИНУДИТЕЛЬНО понижаем
+          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "borsh 1.6 fix skipped"
+          cargo update -p borsh-derive@1.6.0 --precise 1.5.1 || echo "borsh-derive 1.6 fix skipped"
           
-          # Самое важное: если прилетает borsh 1.6, мы его давим
-          cargo update -p borsh-derive --precise 1.5.0 || echo "ok"
+          # Фикс для старых компиляторов внутри Solana
+          sed -i 's/version = 4/version = 3/g' Cargo.lock
           
+          # Запуск
           anchor build
