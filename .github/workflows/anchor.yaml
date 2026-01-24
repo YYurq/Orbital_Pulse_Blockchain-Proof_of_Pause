@@ -1,4 +1,4 @@
-name: Anchor Build Final Fix
+name: Anchor Build & Test
 
 on:
   push:
@@ -6,95 +6,103 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+env:
+  SOLANA_VERSION: '1.18.18'
+  ANCHOR_VERSION: '0.30.1'
+  CARGO_UNSTABLE_NEXT_LOCKFILE_BUMP: 'true'
+
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install System Dependencies
+      - name: Cache Solana tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/solana
+            ~/.local/share/solana
+          key: ${{ runner.os }}-solana-${{ env.SOLANA_VERSION }}
+          
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: ./target
+          key: ${{ runner.os }}-target-nightly-${{ hashFiles('**/Cargo.toml') }}
+
+      - name: Clear cargo cache
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
+          rm -rf ~/.cargo/registry
+          rm -rf ~/.cargo/git
+          rustup self update || true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+          
+      - name: Verify Rust version
+        run: |
+          rustc --version
+          cargo --version
+          rustup show
 
       - name: Install Solana
         run: |
-          wget -q https://github.com/solana-labs/solana/releases/download/v1.18.12/solana-release-x86_64-unknown-linux-gnu.tar.bz2
-          tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
-          echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
-
-      - name: Install Anchor CLI
-        run: npm install -g @coral-xyz/anchor-cli@0.29.0
-
-      - name: Create Compatibility Environment
-        run: |
-          # Создаем локальные заглушки для всех библиотек, которые требуют Rust > 1.75
-          mkdir -p fix/constant_time_eq/src fix/indexmap/src fix/toml_edit/src fix/toml_parser/src fix/toml_datetime/src
-          
-          # 1. constant_time_eq
-          echo '[package]' > fix/constant_time_eq/Cargo.toml
-          echo -e 'name = "constant_time_eq"\nversion = "0.4.2"\nedition = "2021"' >> fix/constant_time_eq/Cargo.toml
-          echo 'pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool { a == b }' > fix/constant_time_eq/src/lib.rs
-
-          # 2. indexmap (Перехватываем ВСЕ версии 2.x)
-          echo -e '[package]\nname = "indexmap"\nversion = "2.13.0"\nedition = "2021"' > fix/indexmap/Cargo.toml
-          echo 'pub struct IndexMap<K, V>(std::marker::PhantomData<(K, V)>);' > fix/indexmap/src/lib.rs
-
-          # 3. toml_datetime
-          echo -e '[package]\nname = "toml_datetime"\nversion = "0.6.3"\nedition = "2021"' > fix/toml_datetime/Cargo.toml
-          echo 'pub struct Date; pub struct Time; pub struct DateTime;' > fix/toml_datetime/src/lib.rs
-
-          # 4. toml_edit
-          echo -e '[package]\nname = "toml_edit"\nversion = "0.23.10"\nedition = "2021"' > fix/toml_edit/Cargo.toml
-          echo 'pub struct Document;' > fix/toml_edit/src/lib.rs
-
-          # 5. toml_parser
-          echo -e '[package]\nname = "toml_parser"\nversion = "1.0.6+spec-1.1.0"\nedition = "2021"' > fix/toml_parser/Cargo.toml
-          echo 'pub struct Parser;' > fix/toml_parser/src/lib.rs
-
-      - name: Reconstruct Cargo.toml
-        run: |
-          # Мы временно перезаписываем Cargo.toml, добавляя в него блок patch
-          # Это гарантирует, что Cargo увидит наши локальные фиксы
-          if ! grep -q "\[patch.crates-io\]" Cargo.toml; then
-            cat >> Cargo.toml <<EOF
-
-[patch.crates-io]
-constant_time_eq = { path = "./fix/constant_time_eq" }
-indexmap = { path = "./fix/indexmap" }
-toml_datetime = { path = "./fix/toml_datetime" }
-toml_edit = { path = "./fix/toml_edit" }
-toml_parser = { path = "./fix/toml_parser" }
-EOF
+          set -e
+          if ! wget -q https://github.com/solana-labs/solana/releases/download/v${{ env.SOLANA_VERSION }}/solana-release-x86_64-unknown-linux-gnu.tar.bz2; then
+            curl -sSfL --retry 3 --retry-delay 2 https://release.solana.com/v${{ env.SOLANA_VERSION }}/install | sh
+            export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+            echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          else
+            tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
+            echo "$PWD/solana-release/bin" >> $GITHUB_PATH
+            export PATH="$PWD/solana-release/bin:$PATH"
           fi
-
-      - name: Build Program
+          solana --version
+          
+      - name: Install Anchor CLI
         run: |
-          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
-          mkdir -p ~/.config/solana
-          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
-          
-          # Очистка и жесткая фиксация версий
-          rm -f Cargo.lock
-          cargo generate-lockfile
-          
-          # Откат borsh (известная проблема Anchor 0.29)
-          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh ok"
-          
-          # Принудительно заставляем Cargo использовать наши версии для indexmap из лога
-          cargo update -p indexmap --precise 2.13.0 || echo "Indexmap patched"
-          
-          # Исправляем формат Cargo.lock для старой Solana
-          sed -i 's/version = 4/version = 3/g' Cargo.lock
-          
+          npm install -g @coral-xyz/anchor-cli@${{ env.ANCHOR_VERSION }}
+
+      - name: Show versions
+        run: |
+          solana --version
+          anchor --version
+          rustc --version
+          cargo --version
+
+      - name: Build program
+        run: |
+          rustup default nightly
+          rustup update nightly
+          rm -rf ~/.cargo
+          find . -name "Cargo.lock" -type f -delete
           anchor build
 
-      - name: Upload Artifacts
-        if: success()
+      - name: Run Cargo tests
+        run: cargo test --manifest-path programs/orbital_pulse/Cargo.toml
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Anchor tests
+        run: anchor test --skip-local-validator
+
+      - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: orbital-pulse-build
+          name: build-artifacts
           path: |
             target/deploy/*.so
             target/idl/*.json
