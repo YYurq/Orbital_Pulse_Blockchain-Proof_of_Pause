@@ -1,3 +1,8 @@
 [workspace]
 members = ["programs/*"]
 resolver = "2"
+
+[patch.crates-io]
+# Перехватываем любые попытки использовать новые версии borsh
+borsh = { git = "https://github.com/near/borsh-rs", tag = "1.5.1" }
+borsh-derive = { git = "https://github.com/near/borsh-rs", tag = "1.5.1" }
