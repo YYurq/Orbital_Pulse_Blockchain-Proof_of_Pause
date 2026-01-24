@@ -35,10 +35,14 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Генерируем лок
+          # Очистка локов и временных файлов
+          rm -f Cargo.lock
+          
+          # Генерируем новый лок
           cargo generate-lockfile
           
-          # Обновляем конкретно до той версии, которую указали в патче
+          # ПРИНУДИТЕЛЬНО понижаем версию в лок-файле без использования [patch]
+          # Это обходит ограничение "same source"
           cargo update -p constant_time_eq --precise 0.3.1
           
           # Хак формата (v4 -> v3)
