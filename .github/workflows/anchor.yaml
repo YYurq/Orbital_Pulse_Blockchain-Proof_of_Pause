@@ -15,7 +15,7 @@ jobs:
 
       - name: Create Local Fix
         run: |
-          # Наш старый добрый патч для constant_time_eq, чтобы не лезть в интернет
+          # Локальная заглушка для constant_time_eq (решает проблему edition2024)
           mkdir -p fix/constant_time_eq/src
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
@@ -24,13 +24,10 @@ jobs:
           edition = "2021"
           EOF
           cat > fix/constant_time_eq/src/lib.rs <<EOF
-          #[inline(never)]
           pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
               if a.len() != b.len() { return false; }
               let mut res = 0;
-              for i in 0..a.len() {
-                  res |= a[i] ^ b[i];
-              }
+              for i in 0..a.len() { res |= a[i] ^ b[i]; }
               res == 0
           }
           EOF
@@ -57,16 +54,24 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Очистка локов
+          # Сброс и генерация лок-файла
           rm -f Cargo.lock
           cargo generate-lockfile
           
-          echo "=== РЕШАЕМ ПРОБЛЕМУ TOML_DATETIME ==="
-          # Откатываем библиотеку до версии, совместимой с Rust 1.75
+          echo "=== ОТКАТ ЦЕПОЧКИ BORSH (FIXING DOMINO EFFECT) ==="
+          # 1. Откатываем корень проблемы - borsh
+          cargo update -p borsh --precise 1.5.1
+          cargo update -p borsh-derive --precise 1.5.1
+          
+          # 2. Откатываем промежуточные звенья, которые требуют новый toml
+          cargo update -p proc-macro-crate --precise 3.1.0
+          cargo update -p toml_edit --precise 0.22.15
+          
+          # 3. Теперь toml_datetime 0.6.3 будет принят системой
           cargo update -p toml_datetime --precise 0.6.3
           
-          # Хак формата для Solana 1.18 (v4 -> v3)
+          # Исправление формата лок-файла для Solana (v4 -> v3)
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
-          # Сборка
+          # Финальный запуск
           anchor build
