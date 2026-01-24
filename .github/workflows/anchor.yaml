@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Качаем всю историю Git, чтобы точно найти все ревизии
 
       - name: Install System Deps
         run: |
@@ -35,12 +37,15 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Полная очистка перед билдом
+          # Очистка и создание нового лок-файла
           rm -f Cargo.lock
           cargo generate-lockfile
           
-          # Хак формата: Solana 1.18 не понимает Cargo.lock v4, который создает новый Rust
-          # Мы принудительно возвращаем его на v3
+          # ФИКС: Откатываем blake3, чтобы он не конфликтовал с нашим патчем
+          # Используем полную спецификацию, чтобы избежать ошибки "ambiguous"
+          cargo update -p blake3 --precise 1.5.0 || echo "blake3 fix skipped"
+          
+          # Хак формата для Solana 1.18
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
           # Сборка
