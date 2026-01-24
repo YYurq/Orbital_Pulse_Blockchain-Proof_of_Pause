@@ -52,14 +52,16 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Полная очистка
+          # Очистка старых локов
           rm -f Cargo.lock
           
-          # Принудительный откат borsh, так как он не в patch
+          # Генерация нового лока с учетом патчей из Cargo.toml
           cargo generate-lockfile
-          cargo update -p borsh@1.6.0 --precise 1.5.1
           
-          # Исправление формата лок-файла
+          # Точечный откат borsh (он часто капризничает, если его не пнуть)
+          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh already handled"
+          
+          # Хак формата для совместимости с Solana CLI
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
           anchor build
