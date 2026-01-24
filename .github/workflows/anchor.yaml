@@ -52,12 +52,17 @@ jobs:
 
       - name: Install Solana
         run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          set -e
+          if ! wget -q https://github.com/solana-labs/solana/releases/download/v${{ env.SOLANA_VERSION }}/solana-release-x86_64-unknown-linux-gnu.tar.bz2; then
+            curl -sSfL --retry 3 --retry-delay 2 https://release.solana.com/v${{ env.SOLANA_VERSION }}/install | sh
+            export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+            echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          else
+            tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
+            echo "$PWD/solana-release/bin" >> $GITHUB_PATH
+            export PATH="$PWD/solana-release/bin:$PATH"
+          fi
           solana --version
-          
-      - name: Add Solana to PATH
-        run: echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
           
       - name: Install Anchor CLI
         run: |
