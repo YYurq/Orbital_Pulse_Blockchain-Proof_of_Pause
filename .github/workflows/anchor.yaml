@@ -45,15 +45,22 @@ jobs:
           path: ./target
           key: ${{ runner.os }}-target-nightly-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt, clippy
-
       - name: Clear cargo cache
         run: |
           rm -rf ~/.cargo/registry
           rm -rf ~/.cargo/git
+          rustup self update || true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+          
+      - name: Verify Rust version
+        run: |
+          rustc --version
+          cargo --version
+          rustup show
 
       - name: Install Solana
         run: |
@@ -82,6 +89,8 @@ jobs:
 
       - name: Build program
         run: |
+          rustup default nightly
+          rustup update nightly
           find . -name "Cargo.lock" -type f -delete
           anchor build
 
