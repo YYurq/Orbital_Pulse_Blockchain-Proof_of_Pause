@@ -15,7 +15,6 @@ jobs:
 
       - name: Create Local Fix
         run: |
-          # Фикс для constant_time_eq (решает проблему Edition 2024)
           mkdir -p fix/constant_time_eq/src
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
@@ -50,32 +49,17 @@ jobs:
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           
-          # Настройка ключа
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Генерируем лок-файл
+          # Полная очистка
           rm -f Cargo.lock
+          
+          # Принудительный откат borsh, так как он не в patch
           cargo generate-lockfile
-          
-          echo "=== ГЛОБАЛЬНАЯ ОЧИСТКА ЗАВИСИМОСТЕЙ ==="
-          
-          # 1. Активируем локальный патч
-          cargo update -p constant_time_eq
-          
-          # 2. НОВОЕ: Откатываем indexmap, который теперь требует Rust 1.82
-          cargo update -p indexmap@2.13.0 --precise 2.2.6 || cargo update -p indexmap --precise 2.2.6
-          
-          # 3. Откатываем Borsh и макросы (уже пройденные этапы)
           cargo update -p borsh@1.6.0 --precise 1.5.1
-          cargo update -p proc-macro-crate@3.4.0 --precise 3.1.0
           
-          # 4. Согласовываем toml версии
-          cargo update -p toml_edit@0.22.15 --precise 0.21.1 || cargo update -p toml_edit --precise 0.21.1
-          cargo update -p toml_datetime --precise 0.6.3
-          
-          # 5. Исправление формата лок-файла (v4 -> v3)
+          # Исправление формата лок-файла
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
-          # СБОРКА
           anchor build
