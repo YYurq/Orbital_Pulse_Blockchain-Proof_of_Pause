@@ -45,27 +45,19 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
           
-          echo "=== 6. Resolve Dependencies (Ambiguity Fix) ==="
+          echo "=== 6. Dependency Fix (Features Conflict) ==="
           cargo generate-lockfile
           
-          # Указываем полные спецификации (версии), чтобы Cargo не путался
-          echo "Fixing multiple borsh versions..."
-          # Мы заставляем версию 1.5.1 (которая ломает билд) откатиться
-          cargo update -p borsh@1.5.1 --precise 1.5.1 || echo "borsh 1.5.1 already set"
-          
-          # Если borsh-derive тоже двоится, фиксируем и его
-          cargo update -p borsh-derive@1.5.1 --precise 1.5.1 || echo "borsh-derive skip"
-          
-          # Другие пакеты
-          cargo update -p indexmap --precise 1.9.3 || echo "indexmap skip"
+          # Убираем конфликты фич, фиксируя версии
+          cargo update -p solana-program --precise 1.17.0 || echo "skip"
+          cargo update -p borsh@1.5.1 --precise 1.5.1 || echo "skip"
           
           echo "=== 7. Lock Version Hack (v4 -> v3) ==="
           sed -i 's/version = 4/version = 3/g' Cargo.lock
-          echo "Forced v3 format"
           
           echo "=== 8. Build Anchor Program ==="
           export RUSTC_BOOTSTRAP=1
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$HOME/.cargo/bin:$PATH"
           
-          # Пробуем билд. Если locked упадет, попробуем обычный
-          anchor build -- --offline || anchor build
+          # Запускаем билд
+          anchor build
