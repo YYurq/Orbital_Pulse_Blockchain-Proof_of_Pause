@@ -67,7 +67,9 @@ jobs:
           
       - name: Install Anchor CLI
         run: |
-          npm install -g @coral-xyz/anchor-cli@${{ env.ANCHOR_VERSION }}
+          cargo +nightly install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked --force
+        env:
+          RUSTUP_TOOLCHAIN: nightly
 
       - name: Show versions
         run: |
@@ -81,13 +83,13 @@ jobs:
           rustup default nightly
           rustup update nightly
           rm -rf ~/.cargo/registry
-          rm -rf ~/.cargo/git
+          rm -rf ~/.cargo/git  
           which cargo
           which rustc
           cargo --version
           rustc --version
           find . -name "Cargo.lock" -type f -delete
-          anchor build
+          RUST_BACKTRACE=1 anchor build
         env:
           RUSTUP_TOOLCHAIN: nightly
 
