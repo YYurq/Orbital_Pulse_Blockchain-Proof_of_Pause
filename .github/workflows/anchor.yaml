@@ -32,7 +32,7 @@ jobs:
       - name: Install Anchor
         run: npm install -g @coral-xyz/anchor-cli@0.29.0
 
-      - name: Build
+      - name: Build with Edition 2024 Support
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           
@@ -40,14 +40,15 @@ jobs:
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
-          # Разрешаем нестабильные фичи для Cargo, чтобы он не падал на Edition 2024
+          # Включаем поддержку нестабильного Edition 2024
           export CARGO_UNSTABLE_EDITION_2024=true
+          export RUSTC_BOOTSTRAP=1
           
-          # Генерируем лок
-          cargo generate-lockfile
+          # Генерируем лок с использованием Nightly функций
+          cargo +nightly generate-lockfile -Zunstable-options
           
-          # Хак формата Lock-файла для инструментов Solana (они все еще хотят v3)
+          # Хак формата Lock-файла для инструментов Solana (v4 -> v3)
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
-          # Сборка
-          anchor build
+          # Запуск сборки через Anchor с прокидыванием флагов в Cargo
+          anchor build -- --offline || anchor build
