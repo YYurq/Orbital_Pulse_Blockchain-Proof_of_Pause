@@ -16,7 +16,7 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-# ВАЖНО: добавлен feature "init-if-needed"
 anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
-anchor-spl = "0.30.1"
+# Добавляем необходимые модули для работы с токенами
+anchor-spl = { version = "0.30.1", features = ["token", "associated_token"] }
 solana-program = "1.18.18"
