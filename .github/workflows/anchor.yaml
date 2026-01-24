@@ -9,7 +9,6 @@ on:
 env:
   SOLANA_VERSION: '1.18.18'
   ANCHOR_VERSION: '0.30.1'
-  CARGO_UNSTABLE_NEXT_LOCKFILE_BUMP: 'true'
 
 jobs:
   build-and-test:
@@ -19,37 +18,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Temporarily disabled cache to ensure fresh build
-      # - name: Cache Solana tools
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       ~/.cache/solana
-      #       ~/.local/share/solana
-      #     key: ${{ runner.os }}-solana-${{ env.SOLANA_VERSION }}
-          
-      # - name: Cache target directory
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: ./target
-      #     key: ${{ runner.os }}-target-nightly-v2-${{ hashFiles('**/Cargo.toml') }}
-
-      - name: Clear cargo cache
-        run: |
-          rm -rf ~/.cargo/registry
-          rm -rf ~/.cargo/git
-          rustup self update || true
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
+      - name: Install Rust (stable for Anchor CLI compatibility)
+        uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.79.0
           components: rustfmt, clippy
-          
-      - name: Verify Rust version
-        run: |
-          rustc --version
-          cargo --version
-          rustup show
 
       - name: Install Solana
         run: |
@@ -67,9 +40,7 @@ jobs:
           
       - name: Install Anchor CLI
         run: |
-          cargo +nightly install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked --force
-        env:
-          RUSTUP_TOOLCHAIN: nightly
+          npm install -g @coral-xyz/anchor-cli@${{ env.ANCHOR_VERSION }}
 
       - name: Show versions
         run: |
@@ -80,23 +51,11 @@ jobs:
 
       - name: Build program
         run: |
-          rustup default nightly
-          rustup update nightly
-          rm -rf ~/.cargo/registry
-          rm -rf ~/.cargo/git  
-          which cargo
-          which rustc
-          cargo --version
-          rustc --version
           find . -name "Cargo.lock" -type f -delete
-          RUST_BACKTRACE=1 anchor build
-        env:
-          RUSTUP_TOOLCHAIN: nightly
+          anchor build
 
       - name: Run Cargo tests
         run: cargo test --manifest-path programs/orbital_pulse/Cargo.toml
-        env:
-          RUSTUP_TOOLCHAIN: nightly
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -109,8 +68,6 @@ jobs:
 
       - name: Run Anchor tests
         run: anchor test --skip-local-validator
-        env:
-          RUSTUP_TOOLCHAIN: nightly
 
       - name: Upload artifacts
         if: always()
