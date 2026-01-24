@@ -1,3 +1,7 @@
+
+
+РАБОЧИЙ .yaml
+
 name: Anchor Build & Check
 
 on:
@@ -23,22 +27,14 @@ jobs:
           npm install -g @coral-xyz/anchor-cli@0.30.1
           
           cargo generate-lockfile
-          
-          # 1. ПЕРВЫМ ДЕЛОМ откатываем proc-macro-crate, так как он тянет за собой плохие версии toml_edit
           cargo update -p proc-macro-crate@3.4.0 --precise 3.1.0
-          
-          # 2. Теперь исправляем неоднозначность toml_edit, когда зависимости верхнего уровня уже ослабли
-          cargo update -p toml_edit@0.22.27 --precise 0.22.27 || echo "ok"
-          cargo update -p toml_edit@0.21.1 --precise 0.22.27 || echo "ok"
-          
-          # 3. Твои стандартные откаты для стабильности
+          cargo update -p toml_edit --precise 0.21.0
           cargo update -p toml_datetime --precise 0.6.5
           cargo update -p indexmap --precise 2.2.6
           cargo update -p blake3 --precise 1.5.0
-          cargo update -p ahash --precise 0.8.6
+          cargo update -p ahash@0.8.12 --precise 0.8.6
           cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh ok"
           
-          # Фикс версии локфайла для Solana CLI
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
           anchor build
