@@ -48,11 +48,23 @@ jobs:
           rustc --version
           cargo --version
 
-      - name: Build program
+      - name: Generate compatible Cargo.lock
         run: |
+          # Install old Rust temporarily
+          rustup install 1.79.0
+          rustup default 1.79.0
+          
+          # Clean and generate Cargo.lock
           rm -rf ~/.cargo/registry
           rm -rf ~/.cargo/git
           find . -name "Cargo.lock" -type f -delete
+          cargo generate-lockfile
+          
+          # Switch back to stable
+          rustup default stable
+          
+      - name: Build program
+        run: |
           anchor build
 
       - name: Run Cargo tests
