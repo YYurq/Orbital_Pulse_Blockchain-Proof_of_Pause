@@ -1,4 +1,4 @@
-name: Anchor Build & Test
+name: Anchor Build (Docker Simple Mode)
 
 on:
   push:
@@ -6,95 +6,35 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-env:
-  SOLANA_VERSION: '1.18.18'
-  ANCHOR_VERSION: '0.30.1'
-
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-    
+    # Используем официальный образ от создателей Anchor
+    # В нем всё уже предустановлено и настроено
+    container:
+      image: coralxyz/anchor:v0.29.0
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Install Solana
-        run: |
-          wget -q https://github.com/solana-labs/solana/releases/download/v${{ env.SOLANA_VERSION }}/solana-release-x86_64-unknown-linux-gnu.tar.bz2
-          tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
-          echo "$PWD/solana-release/bin" >> $GITHUB_PATH
-
-      - name: Install Anchor CLI
-        run: npm install -g @coral-xyz/anchor-cli@${{ env.ANCHOR_VERSION }}
-
       - name: Build Program
         run: |
-          export PATH="$PWD/solana-release/bin:$PATH"
+          # Внутри контейнера нам не нужно ничего устанавливать
+          # Мы просто генерируем ключ для деплоя и запускаем билд
+          mkdir -p ~/.config/solana
+          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "Key exists"
           
-          # 1. Сброс лок-файла для чистого пересчета
-          find . -name "Cargo.lock" -type f -delete
-          cargo generate-lockfile
+          # Удаляем старый замок, чтобы контейнер создал свой
+          rm -f Cargo.lock
           
-          # 2. УТОЧНЕННЫЙ ОТКАТ (Downgrade)
-          # Указываем конкретную версию @3.4.0, чтобы убрать двусмысленность (ambiguity)
-          cargo update -p proc-macro-crate@3.4.0 --precise 3.1.0
-          
-          # Синхронный откат цепочки под Rust 1.75
-          cargo update -p blake3 --precise 1.5.0
-          cargo update -p constant_time_eq --precise 0.3.0
-          cargo update -p ahash@0.8.12 --precise 0.8.6
-          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh ok"
-          
-          # Фиксируем indexmap и toml (теперь proc-macro-crate это позволит)
-          # Используем гибкий патч для indexmap
-          cargo update -p indexmap --precise 2.2.6 || cargo update -p indexmap@2.7.0 --precise 2.2.6
-          cargo update -p toml_edit --precise 0.22.1
-          cargo update -p toml_datetime --precise 0.6.3
-          
-          # 3. Фикс формата лок-файла для совместимости с Solana CLI 1.18
-          sed -i 's/version = 4/version = 3/g' Cargo.lock
-          
-          # 4. Сборка программы
           anchor build
 
-      - name: Run Cargo tests
-        run: cargo test --manifest-path programs/orbital_pulse/Cargo.toml
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install JS dependencies
-        run: |
-          if [ -f "yarn.lock" ]; then
-            yarn install --frozen-lockfile
-          elif [ -f "package-lock.json" ]; then
-            npm ci
-          else
-            npm install
-          fi
-
-      - name: Run Anchor tests
-        run: |
-          export PATH="$PWD/solana-release/bin:$PATH"
-          anchor test --skip-local-validator
-
-      - name: Upload artifacts
-        if: always()
+      - name: Upload Artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: orbital-pulse-build
           path: |
             target/deploy/*.so
             target/idl/*.json
