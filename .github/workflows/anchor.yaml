@@ -64,8 +64,8 @@ jobs:
           cargo update blake3 --precise 1.5.1
           cargo update ahash:0.8.12 --precise 0.8.6
           cargo update constant_time_eq --precise 0.3.0
-          cargo update borsh:1.6.0 --precise 1.5.0
-          cargo update borsh-derive:1.6.0 --precise 1.5.0
+          cargo update borsh:1.6.0 --precise 1.5.1
+          cargo update borsh-derive:1.6.0 --precise 1.5.1
           
           # Switch back to stable
           rustup default stable
