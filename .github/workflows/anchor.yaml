@@ -60,6 +60,11 @@ jobs:
           find . -name "Cargo.lock" -type f -delete
           cargo generate-lockfile
           
+          # Downgrade problematic packages
+          cargo update blake3 --precise 1.5.1
+          cargo update ahash --precise 0.8.6
+          cargo update constant_time_eq --precise 0.3.0
+          
           # Switch back to stable
           rustup default stable
           
