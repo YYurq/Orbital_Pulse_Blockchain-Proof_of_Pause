@@ -66,6 +66,7 @@ jobs:
           cargo update constant_time_eq --precise 0.3.0
           cargo update borsh:1.6.0 --precise 1.5.1 || true
           cargo update borsh-derive:1.5.7 --precise 1.5.1 || true
+          cargo update toml_parser --precise 1.0.1 || true
           
           # Switch back to stable
           rustup default stable
