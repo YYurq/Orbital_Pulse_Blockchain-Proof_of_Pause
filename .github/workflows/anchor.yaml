@@ -17,7 +17,7 @@ jobs:
         run: |
           mkdir -p fix/constant_time_eq/src fix/indexmap/src fix/toml_datetime/src fix/toml_edit/src fix/toml_parser/src
 
-          # 1. constant_time_eq (0.4.2)
+          # 1. constant_time_eq
           cat > fix/constant_time_eq/Cargo.toml <<EOF
           [package]
           name = "constant_time_eq"
@@ -26,47 +26,47 @@ jobs:
           EOF
           echo 'pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool { a == b }' > fix/constant_time_eq/src/lib.rs
 
-          # 2. indexmap (Ставим 2.0.0, чтобы она подходила под ^2.0, ^2.10 и т.д.)
+          # 2. indexmap (версия, которая перекрывает и 2.12, и 2.13)
           cat > fix/indexmap/Cargo.toml <<EOF
           [package]
           name = "indexmap"
-          version = "2.0.0"
+          version = "2.13.0"
           edition = "2021"
           EOF
           echo 'pub use std::collections::BTreeMap as IndexMap; pub use std::collections::BTreeSet as IndexSet;' > fix/indexmap/src/lib.rs
 
-          # 3. toml_datetime (0.6.0)
+          # 3. toml_datetime
           cat > fix/toml_datetime/Cargo.toml <<EOF
           [package]
           name = "toml_datetime"
-          version = "0.6.0"
+          version = "0.6.3"
           edition = "2021"
           EOF
           echo 'pub struct Date; pub struct Time; pub struct DateTime;' > fix/toml_datetime/src/lib.rs
 
-          # 4. toml_edit (0.21.0)
+          # 4. toml_edit (мимикрия под полную версию из лога)
           cat > fix/toml_edit/Cargo.toml <<EOF
           [package]
           name = "toml_edit"
-          version = "0.21.0"
+          version = "0.23.10"
           edition = "2021"
           [dependencies]
-          toml_datetime = "0.6.0"
+          toml_datetime = "0.6.3"
           EOF
           echo 'pub struct Document;' > fix/toml_edit/src/lib.rs
 
-          # 5. toml_parser (1.0.0)
+          # 5. toml_parser (ИСПОЛЬЗУЕМ ВЕРСИЮ ИЗ ОШИБКИ)
           cat > fix/toml_parser/Cargo.toml <<EOF
           [package]
           name = "toml_parser"
-          version = "1.0.0"
+          version = "1.0.6+spec-1.1.0"
           edition = "2021"
           EOF
           echo 'pub struct Parser;' > fix/toml_parser/src/lib.rs
 
       - name: Install Solana
         run: |
-          wget -q https://github.com/solana-labs/solana/releases/download/v1.18.12/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          wget -q https://github.com/solana-labs/solana-binaries/releases/download/v1.18.12/solana-release-x86_64-unknown-linux-gnu.tar.bz2
           tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
           echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
 
@@ -80,14 +80,12 @@ jobs:
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
           
           rm -f Cargo.lock
-          
-          # Генерируем лок и ПРИНУДИТЕЛЬНО заменяем indexmap на нашу локальную версию
           cargo generate-lockfile
           
-          # Откат Borsh
+          # Откат Borsh (обязательно)
           cargo update -p borsh@1.6.0 --precise 1.5.1
           
-          # Фикс формата лок-файла
+          # Фикс формата
           sed -i 's/version = 4/version = 3/g' Cargo.lock
           
           anchor build
