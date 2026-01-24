@@ -14,47 +14,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Cache Solana
-        uses: actions/cache@v4 # Обновлено до v4
-        with:
-          path: |
-            ~/.cache/solana
-            solana-release
-          key: solana-1.18.12-${{ runner.os }}
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
-
-      - name: Install Solana
-        run: |
-          if [ ! -d "solana-release" ]; then
-            wget -q https://github.com/solana-labs/solana/releases/download/v1.18.12/solana-release-x86_64-unknown-linux-gnu.tar.bz2
-            tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
-          fi
-          echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
-
-      - name: Install Anchor CLI
-        run: npm install -g @coral-xyz/anchor-cli@0.29.0
-
-      - name: Setup Solana Keypair
-        run: |
-          mkdir -p ~/.config/solana
-          if [ ! -f ~/.config/solana/id.json ]; then
-            solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
-          fi
-
       - name: Create Heavy Duty Patches
         run: |
           mkdir -p fix/constant_time_eq/src fix/indexmap/src fix/toml_datetime/src fix/toml_edit/src fix/toml_parser/src
           
+          # 1. constant_time_eq
           echo '[package]' > fix/constant_time_eq/Cargo.toml
           echo 'name = "constant_time_eq"' >> fix/constant_time_eq/Cargo.toml
           echo 'version = "0.4.2"' >> fix/constant_time_eq/Cargo.toml
           echo 'edition = "2021"' >> fix/constant_time_eq/Cargo.toml
           echo 'pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool { a == b }' > fix/constant_time_eq/src/lib.rs
 
+          # 2. indexmap (Мимикрия под 2.13.0)
           cat > fix/indexmap/Cargo.toml <<EOF
           [package]
           name = "indexmap"
@@ -63,14 +34,27 @@ jobs:
           EOF
           echo 'pub struct IndexMap<K, V>(std::marker::PhantomData<(K, V)>);' > fix/indexmap/src/lib.rs
 
+          # 3. toml_datetime (Мимикрия под 0.7.5)
+          cat > fix/toml_datetime/Cargo.toml <<EOF
+          [package]
+          name = "toml_datetime"
+          version = "0.7.5"
+          edition = "2021"
+          EOF
+          echo 'pub struct Date; pub struct Time; pub struct DateTime;' > fix/toml_datetime/src/lib.rs
+
+          # 4. toml_edit (Мимикрия под 0.23.10)
           cat > fix/toml_edit/Cargo.toml <<EOF
           [package]
           name = "toml_edit"
           version = "0.23.10"
           edition = "2021"
+          [dependencies]
+          toml_datetime = "0.7.5"
           EOF
           echo 'pub struct Document;' > fix/toml_edit/src/lib.rs
 
+          # 5. toml_parser (ФИНАЛЬНЫЙ АККОРД: Мимикрия под 1.0.6)
           cat > fix/toml_parser/Cargo.toml <<EOF
           [package]
           name = "toml_parser"
@@ -79,34 +63,33 @@ jobs:
           EOF
           echo 'pub struct Parser;' > fix/toml_parser/src/lib.rs
 
-      - name: Force Patch via Cargo.toml
+      - name: Install Solana & Anchor
         run: |
-          cat > Cargo.toml <<EOF
-          [workspace]
-          members = ["programs/*"]
-          resolver = "2"
+          sudo apt-get update && sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
+          wget -q https://github.com/solana-labs/solana/releases/download/v1.18.12/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
+          npm install -g @coral-xyz/anchor-cli@0.29.0
 
-          [patch.crates-io]
-          constant_time_eq = { path = "./fix/constant_time_eq" }
-          indexmap = { path = "./fix/indexmap" }
-          toml_edit = { path = "./fix/toml_edit" }
-          toml_parser = { path = "./fix/toml_parser" }
-          EOF
-
-      - name: Build Anchor Program
+      - name: Build
         run: |
           export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
+          mkdir -p ~/.config/solana
+          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json || echo "exists"
+          
           rm -f Cargo.lock
           cargo generate-lockfile
-          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh already ok"
+          # Откат Borsh
+          cargo update -p borsh@1.6.0 --precise 1.5.1 || echo "Borsh ok"
+          
+          # Фикс формата лок-файла
           sed -i 's/version = 4/version = 3/g' Cargo.lock
+          
           anchor build
 
-      - name: Upload Build Artifacts
+      - name: Upload Artifacts
         if: success()
-        uses: actions/upload-artifact@v4 # Использование актуальной версии
+        uses: actions/upload-artifact@v4
         with:
           name: anchor-build
-          path: |
-            target/deploy/*.so
-            target/idl/*.json
+          path: target/deploy/*.so
