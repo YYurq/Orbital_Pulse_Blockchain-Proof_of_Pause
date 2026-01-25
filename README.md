@@ -54,28 +54,54 @@ The protocol implements a deterministic, entropy-reactive emission model where $
 
 ```mermaid
 graph TD
-    %% Nodes
-    Entropy[<b>Entropy Source</b><br/>Solana Slot Hashes] -- Block Physics --> FineLog(<b>Fine Log</b><br/>u128 Fixed-Point Signal)
+    Start([Initialize]) --> Calib{Born?}
     
-    FineLog -- "EMA (4:1 Weighting)" --> EMA[<b>EMA Trend</b><br/>Inertial Projection]
+    %% Calibration
+    Calib -->|No| Hash1[Slot Hash]
+    Hash1 --> Delta1[Δ Noise]
+    Delta1 --> Collect[Collect 16<br/>samples]
+    Collect --> Eps[ε = median]
+    Eps --> Born[Born ✓]
     
-    subgraph Self_Regulation [Adaptive Loop with Hysteresis]
-    EMA -- "Grad > Threshold (%)" --> Depth[<b>Adaptive Depth</b><br/>Dynamic Window 7-15]
-    Depth -.->|Feedback| FineLog
-    end
+    %% Working Cycle
+    Calib -->|Yes| Hash2[Slot Hash]
+    Born --> Hash2
+    Hash2 --> Delta2[Δ Noise]
+    Delta2 --> Var[Variance]
+    Var --> EMA[EMA 80:20]
+    EMA --> Grad[Gradient]
     
-    EMA -- Phase Continuity --> Resonance{<b>Resonance Check</b>}
+    %% Modes
+    Grad --> Mode{Mode}
+    Mode -->|Low| S0[S0 IDLE]
+    Mode -->|High| S2[S2 EVOLVE]
+    Mode -->|Max| S1[S1 CONTROL]
     
-    Resonance -- "Delta < Epsilon &<br/>Index < Epsilon*10" --> MintNode[[<b>Mint $ORBIT</b><br/>Orbital Transition]]
-    Resonance -- "Volatility Peak" --> Observe[Observation State]
+    S2 --> S0
+    S2 --> S1
+    S1 --> S0
     
-    %% Styling
-    style Entropy fill:#1a1a1a,stroke:#9945FF,stroke-width:2px,color:#fff
-    style FineLog fill:#1a1a1a,stroke:#14F195,stroke-width:2px,color:#fff
-    style EMA fill:#1a1a1a,stroke:#00C2FF,stroke-width:2px,color:#fff
-    style Resonance fill:#2d2d2d,stroke:#FFD700,stroke-width:2px,color:#fff
-    style MintNode fill:#004d00,stroke:#00ff00,stroke-width:3px,color:#fff
-    style Observe fill:#333,stroke:#666,stroke-dasharray: 5 5,color:#aaa
+    %% Emission
+    S0 --> Check{Δ < ε?}
+    Check -->|Yes| Mint[[🪙 MINT<br/>0.1 ORBIT]]
+    Check -->|No| Loop[Continue]
+    S1 --> Loop
+    S2 --> Loop
+    Mint --> Loop
+    Loop --> Hash2
+    
+    %% Light theme styling
+    style Start fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Eps fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style Born fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    
+    style S0 fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style S1 fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style S2 fill:#bbdefb,stroke:#1565c0,stroke-width:3px
+    
+    style Mint fill:#a5d6a7,stroke:#2e7d32,stroke-width:4px
+    style Check fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style Mode fill:#fff9c4,stroke:#f9a825,stroke-width:2px
 ```
 ---
 
