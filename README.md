@@ -40,7 +40,25 @@ A consensus-independent emission trigger based on:
 - hash entropy
 - deterministic state checks
 - epsilon-based admissibility conditions
-- 
+
+## Technical Implementation
+
+### Phase States
+- **S0 (IDLE)** - Resonant pause state, token emission enabled
+- **S1 (CONTROL)** - High entropy, maximum control
+- **S2 (EVOLVE)** - Adaptive state, system adjusting
+
+### Key Parameters
+- **ε (epsilon)** - Vacuum state baseline (median of 16 samples)
+- **Variance Index** - Log-compressed system energy
+- **X_control** - Adaptive control force
+- **Gradient** - Rate of energy change
+
+### Emission Condition
+```
+mode == S0 AND δ < ε  →  MINT 0.1 $ORBIT
+```
+
 ### Orbital Mechanics (Proof-of-Pause)
 
 The protocol implements a deterministic, entropy-reactive emission model where $ORBIT minting is governed by algorithmic noise analysis and adaptive spectral filters.
