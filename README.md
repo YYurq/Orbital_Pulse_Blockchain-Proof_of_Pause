@@ -145,8 +145,9 @@ formal admissibility rules, rather than randomness or external intervention.
 ├── Cargo.toml
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
-├── Client
+├── client
 ├── License
+├── gitignore
 └── README.md
 ```
 ---
